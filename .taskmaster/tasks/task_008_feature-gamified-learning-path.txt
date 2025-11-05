@@ -1,0 +1,25 @@
+# Task ID: 8
+# Title: Enforce Sequential Progression
+# Status: pending
+# Dependencies: 7
+# Priority: medium
+# Description: Ensure students progress through checkpoints sequentially.
+# Details:
+Implement logic to lock and unlock checkpoints based on topic mastery. Ensure that students cannot access future checkpoints until all topics in the current checkpoint are mastered.
+
+# Test Strategy:
+Test progression by completing topics and verifying that checkpoints unlock in the correct order.
+
+# Subtasks:
+## 1. Implement Checkpoint Lock/Unlock Logic [pending]
+### Dependencies: None
+### Description: Develop the logic to lock and unlock checkpoints based on topic mastery.
+### Details:
+Create a function that checks topic completion status and updates checkpoint access accordingly. Ensure that future checkpoints remain locked until all topics in the current checkpoint are mastered.
+
+## 2. Design Testing Scenarios for Progression Logic [pending]
+### Dependencies: 8.1
+### Description: Create comprehensive testing scenarios to validate the sequential progression logic.
+### Details:
+Develop test cases to cover various progression scenarios, including edge cases where topics are completed out of order. Ensure tests validate that checkpoints unlock only when all topics in the current checkpoint are mastered.
+

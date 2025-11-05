@@ -1,0 +1,31 @@
+# Task ID: 9
+# Title: Integrate Question Generation
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Link questions to topics based on lecture content.
+# Details:
+Use existing functions to generate questions from lecture transcripts and link them to the appropriate topics in the learning path.
+
+# Test Strategy:
+Ensure that questions are correctly associated with topics and that each topic has at least 5 questions available.
+
+# Subtasks:
+## 1. Link Questions to Topics [pending]
+### Dependencies: None
+### Description: Associate generated questions with relevant topics from lecture content.
+### Details:
+Utilize existing functions to map questions to topics based on keywords and context extracted from lecture transcripts.
+
+## 2. Validate Question-Topic Associations [pending]
+### Dependencies: 9.1
+### Description: Ensure the accuracy of question-to-topic links.
+### Details:
+Review and refine the associations to ensure questions are correctly linked to the most relevant topics.
+
+## 3. Test Question Generation and Linking [pending]
+### Dependencies: 9.1, 9.2
+### Description: Conduct tests to ensure questions are generated and linked correctly.
+### Details:
+Perform end-to-end testing of the question generation and linking process to confirm functionality and correctness.
+

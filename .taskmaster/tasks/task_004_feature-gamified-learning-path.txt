@@ -1,0 +1,25 @@
+# Task ID: 4
+# Title: Develop Subject Selection Interface
+# Status: pending
+# Dependencies: 1
+# Priority: medium
+# Description: Create the UI for selecting subjects and viewing learning paths.
+# Details:
+Implement a React component `SubjectSelector` that allows students to select a subject. Upon selection, load the corresponding learning path using data from Firestore.
+
+# Test Strategy:
+Ensure that the subject selection updates the UI and correctly fetches the learning path data.
+
+# Subtasks:
+## 1. Design Subject Selection UI [pending]
+### Dependencies: None
+### Description: Create the UI layout for the subject selection interface.
+### Details:
+Design the UI for the `SubjectSelector` component using React. Ensure it is responsive and user-friendly. Use Material-UI for consistent styling.
+
+## 2. Implement Data Fetching Logic [pending]
+### Dependencies: 4.1
+### Description: Develop logic to fetch learning paths from Firestore upon subject selection.
+### Details:
+Use Firestore SDK to fetch data when a subject is selected. Ensure data is correctly loaded and displayed in the UI.
+

@@ -1,0 +1,25 @@
+# Task ID: 6
+# Title: Implement Checkpoint Interaction
+# Status: pending
+# Dependencies: 5
+# Priority: medium
+# Description: Enable interaction with checkpoints to display topics.
+# Details:
+Create a `CheckpointNode` component that displays checkpoint status and allows clicking to open a modal with topic details. Ensure that locked checkpoints show appropriate messages.
+
+# Test Strategy:
+Verify that clicking on checkpoints opens the correct modal and displays accurate topic information.
+
+# Subtasks:
+## 1. Develop CheckpointNode UI Interaction [pending]
+### Dependencies: None
+### Description: Create the UI interaction for the CheckpointNode component.
+### Details:
+Implement the CheckpointNode component to handle user clicks and display checkpoint status. Ensure that locked checkpoints show appropriate messages.
+
+## 2. Implement Modal Display Logic for Topics [pending]
+### Dependencies: 6.1
+### Description: Develop the logic to display topic details in a modal upon interaction.
+### Details:
+Create the logic to open a modal with topic details when a checkpoint is clicked. Ensure the modal displays accurate information based on the checkpoint status.
+

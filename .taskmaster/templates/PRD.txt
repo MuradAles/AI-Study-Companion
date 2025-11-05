@@ -1,0 +1,1689 @@
+# Product Requirements Document: AI Study Companion
+
+**Version:** 1.0  
+**Date:** November 4, 2025  
+**Sprint Duration:** 48 Hours  
+**Tech Stack:** React + Firebase
+
+---
+
+## Executive Summary
+
+Build an AI-powered study companion that lives between tutoring sessions to prevent student churn, drive cross-selling, and improve learning outcomes. The companion analyzes session transcripts, generates personalized practice questions, tracks progress across multiple subjects, and uses gamification to maintain engagement.
+
+### Business Problem
+- **52% of students churn** after completing their primary goal (e.g., passing SAT)
+- Students don't realize Nerdy can help with other subjects
+- Low engagement between tutoring sessions
+- Students with <3 sessions in first week have poor retention
+
+### Success Metrics
+- Reduce "goal complete" churn from 52% to <30%
+- Increase cross-subject enrollment by 25%
+- 60% of students complete daily practice goals
+- Students with <3 sessions in week 1 book additional sessions
+
+---
+
+## Product Overview
+
+### Core Features
+
+1. **Session Analysis & Learning Extraction**
+   - AI analyzes tutoring session transcripts
+   - Extracts topics covered, student struggles, and strengths
+   - Generates personalized follow-up questions
+
+2. **Persistent AI Chat Companion**
+   - 24/7 conversational interface
+   - Answers student questions between sessions
+   - References past sessions for context
+   - Smart handoff to human tutors when needed
+
+3. **Adaptive Practice System**
+   - Auto-generated practice questions based on session content
+   - Immediate AI-powered feedback
+   - Difficulty adjustment based on performance
+
+4. **Multi-Subject Progress Tracking**
+   - Visual dashboard showing progress across all subjects
+   - Session count per subject
+   - Goal completion status
+
+5. **Gamification & Engagement**
+   - Points and level system
+   - Daily goals (3 questions/day)
+   - Streak tracking with visual rewards
+   - Badge collection system
+   - Celebration animations
+
+6. **Retention Automation**
+   - Auto-detect students with <3 sessions in week 1
+   - Send booking nudges via web notifications
+   - Cross-sell suggestions when goals complete
+   - Multi-goal awareness system
+
+---
+
+## Technical Architecture
+
+### Tech Stack
+- **Frontend:** React 18+ with Hooks
+- **Backend:** Firebase (Firestore, Functions, Hosting, Cloud Messaging)
+- **AI:** OpenAI GPT-4 or Claude API
+- **Deployment:** Firebase Hosting
+- **Notifications:** Firebase Cloud Messaging (FCM)
+
+### System Architecture
+
+```
+┌─────────────────────────────────────────┐
+│   Tutoring Session (External)          │
+│   - Generates transcript                │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│   Firebase Functions                    │
+│   ├─ processTranscript()                │
+│   ├─ generateQuestions()                │
+│   ├─ checkStudentHealth()               │
+│   └─ evaluateAnswer()                   │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│   Firestore Database                    │
+│   ├─ students/                          │
+│   ├─ sessions/                          │
+│   ├─ practice_items/                    │
+│   ├─ conversations/                     │
+│   └─ notifications/                     │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│   React Web Application                 │
+│   ├─ Dashboard                          │
+│   ├─ Practice Interface                 │
+│   ├─ Chat with AI                       │
+│   ├─ Progress Tracking                  │
+│   └─ Gamification UI                    │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## Data Models
+
+### Firestore Collections
+
+#### `students`
+```javascript
+{
+  studentId: "marcus_123",
+  name: "Marcus Johnson",
+  email: "marcus@example.com",
+  firstSessionDate: "2025-10-28",
+  lastActive: "2025-11-04",
+  fcmToken: "firebase_cloud_messaging_token", // for notifications
+  
+  goals: [
+    {
+      goalId: "goal_001",
+      subject: "SAT Math",
+      status: "in_progress", // "complete", "paused"
+      sessionsCompleted: 2,
+      targetSessions: 10,
+      startDate: "2025-10-28",
+      completedDate: null
+    }
+  ],
+  
+  gamification: {
+    totalPoints: 850,
+    level: 5,
+    currentStreak: 7,
+    longestStreak: 12,
+    lastActivityDate: "2025-11-04",
+    
+    badges: [
+      {
+        badgeId: "first_answer",
+        emoji: "✨",
+        name: "First Answer",
+        earnedAt: "2025-11-01"
+      }
+    ],
+    
+    dailyGoals: {
+      date: "2025-11-04",
+      target: 3,
+      completed: 2,
+      status: "in_progress"
+    }
+  },
+  
+  preferences: {
+    notificationsEnabled: true,
+    dailyReminderTime: "15:00"
+  }
+}
+```
+
+#### `sessions`
+```javascript
+{
+  sessionId: "sess_001",
+  studentId: "marcus_123",
+  goalId: "goal_001",
+  tutorName: "Ms. Chen",
+  subject: "Algebra",
+  date: "2025-11-03",
+  duration: 60, // minutes
+  
+  transcript: "Full transcript text...",
+  
+  aiAnalysis: {
+    topicsCovered: ["polynomial division", "remainder theorem"],
+    studentStruggles: ["negative coefficients", "complex remainders"],
+    studentStrengths: ["basic factoring", "arithmetic"],
+    keyMoments: [
+      {
+        timestamp: "00:12:30",
+        type: "confusion",
+        note: "Student expressed confusion about steps"
+      },
+      {
+        timestamp: "00:45:00",
+        type: "breakthrough",
+        note: "Successfully solved complex problem independently"
+      }
+    ],
+    confidenceLevel: 6, // 1-10 scale
+    suggestedTopics: ["synthetic division", "polynomial long division"],
+    processedAt: "2025-11-03T20:15:00Z"
+  }
+}
+```
+
+#### `practice_items`
+```javascript
+{
+  practiceId: "prac_001",
+  studentId: "marcus_123",
+  sessionId: "sess_001",
+  goalId: "goal_001",
+  
+  scheduledFor: "2025-11-04T15:00:00Z",
+  createdAt: "2025-11-03T20:15:00Z",
+  
+  status: "pending", // "completed", "skipped"
+  
+  questions: [
+    {
+      questionId: "q_001",
+      text: "Divide: (x³ + 4x² - 2x + 1) ÷ (x - 2)",
+      topic: "polynomial division",
+      difficulty: "medium",
+      hint: "Remember the synthetic division method Ms. Chen showed you at 15:30 in yesterday's session",
+      correctAnswer: "x² + 6x + 10 remainder 21",
+      pointsValue: 10
+    }
+  ],
+  
+  responses: [
+    {
+      questionId: "q_001",
+      studentAnswer: "x² + 6x + 10 r21",
+      submittedAt: "2025-11-04T15:12:00Z",
+      isCorrect: true,
+      aiFeedback: "Perfect! You nailed the synthetic division steps.",
+      pointsAwarded: 10
+    }
+  ]
+}
+```
+
+#### `conversations`
+```javascript
+{
+  conversationId: "conv_001",
+  studentId: "marcus_123",
+  startedAt: "2025-11-04T15:00:00Z",
+  lastMessageAt: "2025-11-04T15:25:00Z",
+  
+  messages: [
+    {
+      messageId: "msg_001",
+      role: "assistant",
+      content: "Hey Marcus! 👋 Ready to practice some polynomial division from yesterday's session?",
+      timestamp: "2025-11-04T15:00:00Z"
+    },
+    {
+      messageId: "msg_002",
+      role: "user",
+      content: "Yeah but I'm still confused about remainders",
+      timestamp: "2025-11-04T15:01:00Z"
+    },
+    {
+      messageId: "msg_003",
+      role: "assistant",
+      content: "No worries! Remember at 25:15 in yesterday's session when Ms. Chen explained that remainders are what's left over after division? Let me show you a simple example...",
+      timestamp: "2025-11-04T15:01:30Z",
+      context: {
+        referencedSession: "sess_001",
+        referencedTimestamp: "00:25:15"
+      }
+    }
+  ]
+}
+```
+
+#### `notifications`
+```javascript
+{
+  notificationId: "notif_001",
+  studentId: "marcus_123",
+  type: "booking_nudge", // "practice_reminder", "cross_sell", "streak_reminder", "achievement"
+  
+  title: "Keep your momentum! 🚀",
+  body: "You've completed 2 sessions. Students who book 3+ in week 1 see 40% better results!",
+  
+  actionUrl: "/book-session",
+  actionLabel: "Book Session",
+  
+  status: "sent", // "pending", "delivered", "clicked"
+  sentAt: "2025-11-04T10:00:00Z",
+  deliveredAt: "2025-11-04T10:00:15Z",
+  clickedAt: null
+}
+```
+
+---
+
+## User Flows
+
+### Flow 1: Session → Practice → Engagement
+
+```
+1. Student completes tutoring session with Ms. Chen (Algebra)
+   ↓
+2. Transcript uploaded to Firestore
+   ↓
+3. Firebase Function triggers: processTranscript()
+   - Calls OpenAI API to analyze transcript
+   - Extracts topics, struggles, strengths
+   - Saves analysis to sessions/sess_001
+   ↓
+4. Firebase Function triggers: generateQuestions()
+   - Uses AI analysis to create personalized questions
+   - Schedules practice for next day
+   - Saves to practice_items collection
+   ↓
+5. Next day, student opens app
+   - React app queries practice_items where scheduledFor <= now
+   - Shows "You have 3 new practice questions!" notification
+   ↓
+6. Student answers question
+   - Submit to evaluateAnswer() function
+   - AI checks answer, provides feedback
+   - Awards points, checks for badges/level up
+   - Updates streak if answered today
+   ↓
+7. Celebration animations based on performance
+   - Sparkles multiply with streak count
+   - Badge popup if earned
+   - Level up animation if applicable
+```
+
+### Flow 2: Early Week Nudge
+
+```
+1. Daily scheduled function: checkStudentHealth() runs at 10am
+   ↓
+2. Query students where:
+   - daysSinceFirstSession <= 7
+   - totalSessions < 3
+   ↓
+3. For each at-risk student:
+   - Create notification document
+   - Send via Firebase Cloud Messaging
+   - Student receives browser notification
+   ↓
+4. Student clicks notification
+   - Opens app to booking page
+   - Pre-filled with same tutor if available
+```
+
+### Flow 3: Cross-Sell on Goal Complete
+
+```
+1. Student completes 10th SAT Math session
+   ↓
+2. Tutor marks goal as "complete" in system
+   ↓
+3. Firebase Function detects goal completion
+   ↓
+4. AI determines relevant cross-sell subjects:
+   - SAT complete → College Essays, AP Calc, Physics
+   - Chemistry → Physics, Biology, STEM subjects
+   ↓
+5. Create notification + in-app banner:
+   "🎉 Congrats on SAT Math! Students like you often enjoy: 
+   College Essays, AP Calculus, Physics. Explore →"
+   ↓
+6. Dashboard shows multi-goal progress:
+   SAT Math: ✓ COMPLETE
+   College Essays: Start here →
+   AP Calculus: Start here →
+```
+
+### Flow 4: AI Chat Conversation
+
+```
+1. Student opens chat interface
+   ↓
+2. AI loads context:
+   - Last 3 sessions
+   - Current struggles
+   - Recent practice results
+   ↓
+3. Student asks: "I don't understand the quadratic formula"
+   ↓
+4. AI checks complexity:
+   - Simple explanation → Answer directly
+   - Complex/struggling → Suggest tutor session
+   ↓
+5. AI response references past sessions:
+   "At 15:30 in Tuesday's session, Ms. Chen showed you 
+   the formula: x = (-b ± √(b²-4ac)) / 2a. Let's break it down..."
+   ↓
+6. If student still confused after 3 messages:
+   "This is getting complex! Want me to schedule time 
+   with Ms. Chen? She can walk through this step-by-step."
+```
+
+---
+
+## Gamification System
+
+### Points System
+
+| Action | Points |
+|--------|--------|
+| Answer question correctly | 10 |
+| Answer question partially correct | 5 |
+| Complete daily goal (3 questions) | 15 |
+| Maintain streak | 20 |
+| Book session | 25 |
+| Attend session | 50 |
+
+### Level System
+
+| Level | Points Required | Emoji | Name |
+|-------|----------------|-------|------|
+| 1 | 0 | 🌱 | Beginner |
+| 2 | 100 | 🌿 | Learner |
+| 3 | 250 | 🌳 | Student |
+| 4 | 500 | 🎯 | Focused |
+| 5 | 1,000 | ⭐ | Star |
+| 6 | 2,000 | 💎 | Expert |
+| 7 | 4,000 | 🏆 | Master |
+| 8 | 8,000 | 👑 | Legend |
+
+### Badge System
+
+| Badge ID | Emoji | Name | Trigger | Points |
+|----------|-------|------|---------|--------|
+| first_answer | ✨ | First Answer | Answer 1 question | 10 |
+| three_day_streak | 🔥 | On Fire | 3 day streak | 30 |
+| seven_day_streak | 💪 | Dedicated | 7 day streak | 75 |
+| thirty_day_streak | 🏆 | Unstoppable | 30 day streak | 250 |
+| perfect_day | 💯 | Perfect Day | All answers correct in one day | 50 |
+| quick_learner | ⚡ | Quick Learner | 5 questions in <10 mins | 25 |
+| session_regular | 📚 | Regular Student | 10 sessions attended | 100 |
+| multi_subject | 🎓 | Renaissance Learner | Active in 3+ subjects | 150 |
+| early_bird | 🌅 | Early Bird | Practice before 8am | 20 |
+| night_owl | 🦉 | Night Owl | Practice after 10pm | 20 |
+
+### Daily Goals
+- **Target:** Answer 3 practice questions per day
+- **Visual:** Three emoji slots (⭕ → ✨)
+- **Reward:** +15 points when complete
+- **Streak Impact:** Resets if goal missed
+
+### Streak System
+- **Definition:** Consecutive days with at least 1 question answered
+- **Visual:** 🔥 emoji with day count
+- **Bonus:** Sparkle count increases with streak
+  - Day 1-3: ✨ (1 sparkle)
+  - Day 4-7: ✨✨ (2 sparkles)
+  - Day 8+: ✨✨✨ (3 sparkles)
+- **Reset:** Missing one day resets to 0
+
+---
+
+## UI Components
+
+### 1. Dashboard (Home Screen)
+
+**Layout:**
+```
+┌────────────────────────────────────────┐
+│ [Avatar] Marcus                  [⚙️]  │
+│ Level 5 ⭐ • 850 pts • 🔥 7 day streak │
+│ ▓▓▓▓▓▓▓▓░░ 850/1000 to Level 6 💎     │
+├────────────────────────────────────────┤
+│ Today's Goal 🎯                        │
+│ ✨ ✨ ⭕  (2/3 questions)              │
+├────────────────────────────────────────┤
+│ 🔔 New Practice Available!             │
+│ You have 3 questions from yesterday's  │
+│ session with Ms. Chen                  │
+│                      [Start Practice] │
+├────────────────────────────────────────┤
+│ Your Progress 📊                       │
+│ ┌─ SAT Math     ████████░░ 80% (8/10) │
+│ ├─ Chemistry    ██░░░░░░░░ 20% (2/10) │
+│ └─ Start new subject →                 │
+├────────────────────────────────────────┤
+│ [💬 Chat]  [📚 Practice]  [🏆 Badges] │
+└────────────────────────────────────────┘
+```
+
+### 2. Practice Interface
+
+**Layout:**
+```
+┌────────────────────────────────────────┐
+│ ← Back              Question 1 of 3    │
+├────────────────────────────────────────┤
+│ 💡 From your session with Ms. Chen     │
+│    on Nov 3, 2025                      │
+├────────────────────────────────────────┤
+│ Solve:                                 │
+│ (x³ + 4x² - 2x + 1) ÷ (x - 2)         │
+│                                        │
+│ ┌────────────────────────────────────┐ │
+│ │ [Student types answer here]        │ │
+│ └────────────────────────────────────┘ │
+│                                        │
+│ 💡 Need a hint?                        │
+│                                        │
+│           [Submit Answer]              │
+└────────────────────────────────────────┘
+```
+
+**After Submit (Correct):**
+```
+┌────────────────────────────────────────┐
+│       ✨ ✨ ✨                          │
+│                                        │
+│       Awesome work! 🎉                 │
+│       +10 points                       │
+│                                        │
+│ Your answer: x² + 6x + 10 r21          │
+│                                        │
+│ Perfect! You remembered the synthetic  │
+│ division steps from the session.       │
+│                                        │
+│           [Next Question]              │
+└────────────────────────────────────────┘
+```
+
+### 3. AI Chat Interface
+
+**Layout:**
+```
+┌────────────────────────────────────────┐
+│ Chat with AI Study Buddy 💬            │
+├────────────────────────────────────────┤
+│                                        │
+│  [AI] Hey Marcus! I'm here to help    │
+│       with anything from your sessions │
+│       or practice questions. What's up?│
+│                                        │
+│               [You] I'm confused about │
+│                     the quadratic      │
+│                     formula            │
+│                                        │
+│  [AI] No problem! In Tuesday's session │
+│       at 15:30, Ms. Chen covered this. │
+│       The formula is...                │
+│       [Show more]                      │
+│                                        │
+│               [You] Can you show me an │
+│                     example?           │
+│                                        │
+├────────────────────────────────────────┤
+│ [Type your message...]            [📤] │
+└────────────────────────────────────────┘
+```
+
+### 4. Multi-Subject Progress
+
+**Layout:**
+```
+┌────────────────────────────────────────┐
+│ Your Learning Journey 🎓               │
+├────────────────────────────────────────┤
+│                                        │
+│ SAT Math ✓ COMPLETE                    │
+│ ████████████████████ 100%              │
+│ 10/10 sessions • Goal achieved Nov 4   │
+│                                        │
+│ Chemistry                              │
+│ ████░░░░░░░░░░░░░░░░ 20%              │
+│ 2/10 sessions • Next: Ionic Bonding    │
+│ [Book Next Session]                    │
+│                                        │
+│ ┌────────────────────────────────────┐ │
+│ │ 💡 Great job on SAT! Students who  │ │
+│ │ mastered this often enjoy:         │ │
+│ │                                    │ │
+│ │ • College Essay Writing            │ │
+│ │ • AP Calculus AB                   │ │
+│ │ • Physics                          │ │
+│ │                                    │ │
+│ │ [Explore Subjects →]               │ │
+│ └────────────────────────────────────┘ │
+│                                        │
+│ [+ Start New Subject]                  │
+└────────────────────────────────────────┘
+```
+
+### 5. Badge Collection
+
+**Layout:**
+```
+┌────────────────────────────────────────┐
+│ Your Achievements 🏆                   │
+├────────────────────────────────────────┤
+│                                        │
+│ ┌───┐ ┌───┐ ┌───┐ ┌───┐              │
+│ │ ✨│ │ 🔥│ │ 💪│ │🔒 │              │
+│ └───┘ └───┘ └───┘ └───┘              │
+│ First  On    Dedi- Perfect            │
+│ Answer Fire  cated Day                │
+│                                        │
+│ ┌───┐ ┌───┐ ┌───┐ ┌───┐              │
+│ │ ⚡│ │🔒 │ │🔒 │ │🔒 │              │
+│ └───┘ └───┘ └───┘ └───┘              │
+│ Quick  Regu- Renai-Unstp              │
+│ Learn  lar   ssance pable             │
+│                                        │
+│ 4 of 12 badges earned                 │
+└────────────────────────────────────────┘
+```
+
+### 6. Celebration Animations
+
+**Level Up:**
+```
+Full screen overlay with animation:
+┌────────────────────────────────────────┐
+│                                        │
+│              ⭐ → 💎                   │
+│                                        │
+│           LEVEL UP!                    │
+│         You're now Level 6             │
+│                                        │
+│      [Confetti animation]              │
+│                                        │
+│        [Continue]                      │
+│                                        │
+└────────────────────────────────────────┘
+```
+
+**Badge Earned:**
+```
+Slide-in notification from top:
+┌────────────────────────────────────────┐
+│ 🏆 Achievement Unlocked!               │
+│                                        │
+│ 🔥 ON FIRE                             │
+│ You've maintained a 3-day streak!      │
+│ +30 points                             │
+└────────────────────────────────────────┘
+```
+
+---
+
+## Firebase Functions
+
+### 1. `processTranscript`
+**Trigger:** New document in `sessions/` collection  
+**Purpose:** Analyze session transcript with AI
+
+```javascript
+exports.processTranscript = functions.firestore
+  .document('sessions/{sessionId}')
+  .onCreate(async (snap, context) => {
+    const session = snap.data();
+    
+    // Call OpenAI API
+    const analysis = await analyzeTranscriptWithAI(session.transcript);
+    
+    // Update session document
+    await snap.ref.update({
+      aiAnalysis: analysis,
+      processedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Trigger next function
+    return true;
+  });
+```
+
+### 2. `generateQuestions`
+**Trigger:** Session document updated with `aiAnalysis`  
+**Purpose:** Create personalized practice questions
+
+```javascript
+exports.generateQuestions = functions.firestore
+  .document('sessions/{sessionId}')
+  .onUpdate(async (change, context) => {
+    const newData = change.after.data();
+    
+    if (!newData.aiAnalysis) return null;
+    
+    // Generate questions based on analysis
+    const questions = await generateQuestionsWithAI(newData.aiAnalysis);
+    
+    // Schedule for next day
+    const scheduledFor = new Date();
+    scheduledFor.setDate(scheduledFor.getDate() + 1);
+    scheduledFor.setHours(15, 0, 0, 0); // 3pm next day
+    
+    // Create practice item
+    await admin.firestore().collection('practice_items').add({
+      studentId: newData.studentId,
+      sessionId: context.params.sessionId,
+      goalId: newData.goalId,
+      scheduledFor: scheduledFor,
+      status: 'pending',
+      questions: questions,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    
+    return true;
+  });
+```
+
+### 3. `evaluateAnswer`
+**Trigger:** HTTP callable function  
+**Purpose:** Check student answer and update gamification
+
+```javascript
+exports.evaluateAnswer = functions.https.onCall(async (data, context) => {
+  const { practiceId, questionId, studentAnswer } = data;
+  const studentId = context.auth.uid;
+  
+  // Get question details
+  const practiceDoc = await admin.firestore()
+    .collection('practice_items')
+    .doc(practiceId)
+    .get();
+  
+  const question = practiceDoc.data().questions.find(q => q.questionId === questionId);
+  
+  // Evaluate with AI
+  const evaluation = await evaluateWithAI(question, studentAnswer);
+  
+  // Update practice item
+  await practiceDoc.ref.update({
+    responses: admin.firestore.FieldValue.arrayUnion({
+      questionId,
+      studentAnswer,
+      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      isCorrect: evaluation.isCorrect,
+      aiFeedback: evaluation.feedback,
+      pointsAwarded: evaluation.isCorrect ? question.pointsValue : Math.floor(question.pointsValue / 2)
+    })
+  });
+  
+  // Update student gamification
+  const studentRef = admin.firestore().collection('students').doc(studentId);
+  const student = await studentRef.get();
+  const gamification = student.data().gamification;
+  
+  const pointsToAward = evaluation.isCorrect ? question.pointsValue : Math.floor(question.pointsValue / 2);
+  const newTotalPoints = gamification.totalPoints + pointsToAward;
+  const newLevel = calculateLevel(newTotalPoints);
+  
+  // Check streak
+  const today = new Date().toISOString().split('T')[0];
+  const lastActivity = gamification.lastActivityDate;
+  const isConsecutive = isDateConsecutive(lastActivity, today);
+  const newStreak = isConsecutive ? gamification.currentStreak + 1 : 1;
+  
+  // Check daily goal
+  const dailyProgress = gamification.dailyGoals.date === today 
+    ? gamification.dailyGoals.completed + 1 
+    : 1;
+  const dailyGoalComplete = dailyProgress >= 3 && gamification.dailyGoals.completed < 3;
+  
+  // Check for new badges
+  const newBadges = await checkForNewBadges(student.data(), {
+    answeredQuestion: true,
+    isCorrect: evaluation.isCorrect,
+    dailyProgress,
+    newStreak
+  });
+  
+  // Update student
+  await studentRef.update({
+    'gamification.totalPoints': newTotalPoints,
+    'gamification.level': newLevel,
+    'gamification.currentStreak': newStreak,
+    'gamification.longestStreak': Math.max(gamification.longestStreak, newStreak),
+    'gamification.lastActivityDate': today,
+    'gamification.dailyGoals.completed': dailyProgress,
+    'gamification.dailyGoals.date': today,
+    'gamification.dailyGoals.status': dailyProgress >= 3 ? 'completed' : 'in_progress',
+    'gamification.badges': newBadges.length > 0 
+      ? admin.firestore.FieldValue.arrayUnion(...newBadges) 
+      : gamification.badges
+  });
+  
+  // Award daily goal bonus
+  if (dailyGoalComplete) {
+    await studentRef.update({
+      'gamification.totalPoints': admin.firestore.FieldValue.increment(15)
+    });
+  }
+  
+  return {
+    isCorrect: evaluation.isCorrect,
+    feedback: evaluation.feedback,
+    pointsAwarded: pointsToAward + (dailyGoalComplete ? 15 : 0),
+    leveledUp: newLevel > gamification.level,
+    newLevel,
+    newBadges,
+    dailyGoalComplete,
+    currentStreak: newStreak
+  };
+});
+```
+
+### 4. `checkStudentHealth`
+**Trigger:** Scheduled daily at 10am  
+**Purpose:** Send nudges to at-risk students
+
+```javascript
+exports.checkStudentHealth = functions.pubsub
+  .schedule('0 10 * * *')
+  .timeZone('America/New_York')
+  .onRun(async (context) => {
+    const studentsSnapshot = await admin.firestore()
+      .collection('students')
+      .get();
+    
+    const today = new Date();
+    
+    for (const studentDoc of studentsSnapshot.docs) {
+      const student = studentDoc.data();
+      const daysSinceStart = Math.floor(
+        (today - student.firstSessionDate.toDate()) / (1000 * 60 * 60 * 24)
+      );
+      
+      // Check: <3 sessions in first week
+      if (daysSinceStart <= 7) {
+        const totalSessions = student.goals.reduce((sum, goal) => 
+          sum + goal.sessionsCompleted, 0
+        );
+        
+        if (totalSessions < 3) {
+          await sendNotification(studentDoc.id, {
+            type: 'booking_nudge',
+            title: 'Keep your momentum! 🚀',
+            body: `You've completed ${totalSessions} sessions. Students who book 3+ in week 1 see 40% better results!`,
+            actionUrl: '/book-session',
+            actionLabel: 'Book Session'
+          });
+        }
+      }
+      
+      // Check: Goal completed → cross-sell
+      const completedGoals = student.goals.filter(g => g.status === 'complete');
+      for (const completedGoal of completedGoals) {
+        const alreadyNotified = await admin.firestore()
+          .collection('notifications')
+          .where('studentId', '==', studentDoc.id)
+          .where('type', '==', 'cross_sell')
+          .where('metadata.goalId', '==', completedGoal.goalId)
+          .get();
+        
+        if (alreadyNotified.empty) {
+          const suggestions = getCrossSellSuggestions(completedGoal.subject);
+          
+          await sendNotification(studentDoc.id, {
+            type: 'cross_sell',
+            title: `Congrats on completing ${completedGoal.subject}! 🎉`,
+            body: `Students like you often enjoy: ${suggestions.join(', ')}`,
+            actionUrl: '/explore-subjects',
+            actionLabel: 'Explore',
+            metadata: { goalId: completedGoal.goalId }
+          });
+        }
+      }
+      
+      // Check: Streak about to break
+      const lastActivity = student.gamification.lastActivityDate;
+      const daysSinceActivity = Math.floor(
+        (today - new Date(lastActivity)) / (1000 * 60 * 60 * 24)
+      );
+      
+      if (daysSinceActivity === 0 && student.gamification.currentStreak >= 3) {
+        // Send reminder before midnight
+        await sendNotification(studentDoc.id, {
+          type: 'streak_reminder',
+          title: `Don't break your ${student.gamification.currentStreak}-day streak! 🔥`,
+          body: 'Answer just 1 question to keep it going!',
+          actionUrl: '/practice',
+          actionLabel: 'Practice Now'
+        });
+      }
+    }
+    
+    return null;
+  });
+```
+
+### 5. `sendNotification` (Helper)
+**Purpose:** Send web notification via FCM
+
+```javascript
+async function sendNotification(studentId, notificationData) {
+  // Get student's FCM token
+  const studentDoc = await admin.firestore()
+    .collection('students')
+    .doc(studentId)
+    .get();
+  
+  const fcmToken = studentDoc.data().fcmToken;
+  if (!fcmToken) return;
+  
+  // Create notification document
+  const notificationRef = await admin.firestore()
+    .collection('notifications')
+    .add({
+      studentId,
+      ...notificationData,
+      status: 'pending',
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  
+  // Send via FCM
+  try {
+    await admin.messaging().send({
+      token: fcmToken,
+      notification: {
+        title: notificationData.title,
+        body: notificationData.body
+      },
+      webpush: {
+        fcmOptions: {
+          link: `https://yourapp.com${notificationData.actionUrl}`
+        },
+        notification: {
+          icon: '/icon-192x192.png',
+          badge: '/badge-72x72.png',
+          requireInteraction: false
+        }
+      },
+      data: {
+        notificationId: notificationRef.id,
+        type: notificationData.type
+      }
+    });
+    
+    await notificationRef.update({
+      status: 'sent',
+      sentAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Failed to send notification:', error);
+    await notificationRef.update({ status: 'failed' });
+  }
+}
+```
+
+---
+
+## AI Integration
+
+### OpenAI API Usage
+
+#### 1. Transcript Analysis
+```javascript
+async function analyzeTranscriptWithAI(transcript) {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content: `You are an expert tutor analyzer. Analyze tutoring session transcripts and extract:
+        1. Topics covered
+        2. Student struggles and confusion points
+        3. Student strengths and breakthroughs
+        4. Key moments with timestamps
+        5. Overall confidence level (1-10)
+        6. Suggested follow-up topics
+        
+        Return JSON format.`
+      },
+      {
+        role: "user",
+        content: `Analyze this tutoring session:\n\n${transcript}`
+      }
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.3
+  });
+  
+  return JSON.parse(response.choices[0].message.content);
+}
+```
+
+#### 2. Question Generation
+```javascript
+async function generateQuestionsWithAI(analysis) {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content: `You are an expert tutor creating practice questions. Based on session analysis, generate 3 personalized practice questions:
+        - Target student's weak areas
+        - Build on their strengths
+        - Appropriate difficulty level
+        - Include helpful hints referencing the session
+        
+        Return JSON array of questions with: text, topic, difficulty, hint, correctAnswer, pointsValue`
+      },
+      {
+        role: "user",
+        content: `Generate questions based on:\n${JSON.stringify(analysis, null, 2)}`
+      }
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.7
+  });
+  
+  return JSON.parse(response.choices[0].message.content).questions;
+}
+```
+
+#### 3. Answer Evaluation
+```javascript
+async function evaluateWithAI(question, studentAnswer) {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content: `You are an encouraging tutor evaluating student answers. Be supportive but accurate. Return JSON with:
+        - isCorrect (boolean)
+        - feedback (string, 1-2 sentences)
+        - partialCredit (0-1, if partially correct)`
+      },
+      {
+        role: "user",
+        content: `Question: ${question.text}\nCorrect Answer: ${question.correctAnswer}\nStudent Answer: ${studentAnswer}`
+      }
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.5
+  });
+  
+  return JSON.parse(response.choices[0].message.content);
+}
+```
+
+#### 4. Chat Responses
+```javascript
+async function generateChatResponse(conversationHistory, studentContext) {
+  const systemPrompt = `You are an AI study companion for ${studentContext.name}. 
+  
+  Context:
+  - Current subjects: ${studentContext.goals.map(g => g.subject).join(', ')}
+  - Recent sessions: ${studentContext.recentSessions.map(s => s.subject).join(', ')}
+  - Current struggles: ${studentContext.struggles.join(', ')}
+  
+  Guidelines:
+  - Reference specific moments from past sessions when relevant
+  - Be encouraging and supportive
+  - If question is too complex, suggest booking a session with their tutor
+  - Keep responses concise (2-3 sentences)`;
+  
+  const response = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...conversationHistory
+    ],
+    temperature: 0.7,
+    max_tokens: 150
+  });
+  
+  return response.choices[0].message.content;
+}
+```
+
+### Cost Estimates (OpenAI GPT-4)
+
+| Operation | Frequency | Tokens | Cost/Day | Cost/Month |
+|-----------|-----------|--------|----------|------------|
+| Transcript Analysis | 3000 sessions/day | ~2000 tokens/session | $180 | $5,400 |
+| Question Generation | 3000 sessions/day | ~1000 tokens/session | $90 | $2,700 |
+| Answer Evaluation | 9000 answers/day | ~500 tokens/answer | $135 | $4,050 |
+| Chat Responses | 5000 chats/day | ~300 tokens/chat | $45 | $1,350 |
+| **Total** | | | **$450/day** | **$13,500/month** |
+
+**Cost Optimizations:**
+- Use GPT-3.5-turbo for simpler tasks (answer evaluation, chat)
+- Cache common responses
+- Batch processing where possible
+- Consider fine-tuned models after data collection
+
+---
+
+## Web Notifications Setup
+
+### Firebase Cloud Messaging Integration
+
+#### 1. Request Permission
+```javascript
+// In React app initialization
+import { getMessaging, getToken } from 'firebase/messaging';
+
+async function requestNotificationPermission(userId) {
+  const messaging = getMessaging();
+  
+  try {
+    const token = await getToken(messaging, {
+      vapidKey: 'YOUR_VAPID_KEY'
+    });
+    
+    // Save token to Firestore
+    await db.collection('students').doc(userId).update({
+      fcmToken: token,
+      'preferences.notificationsEnabled': true
+    });
+    
+    console.log('Notification permission granted');
+  } catch (error) {
+    console.error('Unable to get permission', error);
+  }
+}
+```
+
+#### 2. Handle Foreground Messages
+```javascript
+// In React app
+import { onMessage } from 'firebase/messaging';
+
+onMessage(messaging, (payload) => {
+  console.log('Foreground message:', payload);
+  
+  // Show in-app notification
+  showInAppNotification({
+    title: payload.notification.title,
+    body: payload.notification.body,
+    onClick: () => {
+      window.location.href = payload.fcmOptions.link;
+    }
+  });
+});
+```
+
+#### 3. Service Worker (Background Messages)
+```javascript
+// public/firebase-messaging-sw.js
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  // Your Firebase config
+});
+
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/icon-192x192.png',
+    badge: '/badge-72x72.png',
+    data: {
+      url: payload.fcmOptions.link
+    }
+  };
+  
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow(event.notification.data.url)
+  );
+});
+```
+
+---
+
+## React Component Structure
+
+```
+src/
+├── components/
+│   ├── Dashboard/
+│   │   ├── Dashboard.jsx
+│   │   ├── GamificationHeader.jsx
+│   │   ├── DailyGoals.jsx
+│   │   ├── ProgressTracker.jsx
+│   │   └── PracticeAlert.jsx
+│   │
+│   ├── Practice/
+│   │   ├── PracticeInterface.jsx
+│   │   ├── QuestionCard.jsx
+│   │   ├── AnswerInput.jsx
+│   │   ├── FeedbackDisplay.jsx
+│   │   └── CelebrationAnimation.jsx
+│   │
+│   ├── Chat/
+│   │   ├── ChatInterface.jsx
+│   │   ├── MessageList.jsx
+│   │   ├── MessageInput.jsx
+│   │   └── SessionReference.jsx
+│   │
+│   ├── Progress/
+│   │   ├── MultiSubjectProgress.jsx
+│   │   ├── SubjectCard.jsx
+│   │   ├── CrossSellSuggestions.jsx
+│   │   └── GoalTimeline.jsx
+│   │
+│   ├── Gamification/
+│   │   ├── BadgeCollection.jsx
+│   │   ├── BadgeCard.jsx
+│   │   ├── LevelUpModal.jsx
+│   │   ├── AchievementPopup.jsx
+│   │   └── StreakDisplay.jsx
+│   │
+│   └── Shared/
+│       ├── Header.jsx
+│       ├── Navigation.jsx
+│       ├── Loading.jsx
+│       └── ErrorBoundary.jsx
+│
+├── hooks/
+│   ├── useStudent.js
+│   ├── usePracticeItems.js
+│   ├── useGamification.js
+│   ├── useChat.js
+│   └── useNotifications.js
+│
+├── services/
+│   ├── firebase.js
+│   ├── api.js
+│   └── notifications.js
+│
+├── utils/
+│   ├── gamification.js
+│   ├── dateHelpers.js
+│   └── formatting.js
+│
+└── App.jsx
+```
+
+### Key Hooks
+
+#### `useStudent.js`
+```javascript
+import { useEffect, useState } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../services/firebase';
+
+export function useStudent(studentId) {
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, 'students', studentId),
+      (doc) => {
+        setStudent({ id: doc.id, ...doc.data() });
+        setLoading(false);
+      }
+    );
+    
+    return unsubscribe;
+  }, [studentId]);
+  
+  return { student, loading };
+}
+```
+
+#### `usePracticeItems.js`
+```javascript
+import { useEffect, useState } from 'react';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../services/firebase';
+
+export function usePracticeItems(studentId) {
+  const [practiceItems, setPracticeItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const q = query(
+      collection(db, 'practice_items'),
+      where('studentId', '==', studentId),
+      where('scheduledFor', '<=', new Date()),
+      where('status', '==', 'pending'),
+      orderBy('scheduledFor', 'desc')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setPracticeItems(items);
+      setLoading(false);
+    });
+    
+    return unsubscribe;
+  }, [studentId]);
+  
+  return { practiceItems, loading };
+}
+```
+
+#### `useGamification.js`
+```javascript
+import { calculateLevel, checkForNewBadges } from '../utils/gamification';
+
+export function useGamification(student) {
+  const getNextLevelInfo = () => {
+    const currentLevel = student?.gamification?.level || 1;
+    const currentPoints = student?.gamification?.totalPoints || 0;
+    
+    const levels = [
+      { level: 1, points: 0 },
+      { level: 2, points: 100 },
+      { level: 3, points: 250 },
+      { level: 4, points: 500 },
+      { level: 5, points: 1000 },
+      { level: 6, points: 2000 },
+      { level: 7, points: 4000 },
+      { level: 8, points: 8000 }
+    ];
+    
+    const nextLevel = levels.find(l => l.level === currentLevel + 1);
+    
+    return {
+      currentLevel,
+      nextLevel: nextLevel?.level,
+      currentPoints,
+      pointsToNext: nextLevel ? nextLevel.points - currentPoints : 0,
+      progress: nextLevel ? (currentPoints / nextLevel.points) * 100 : 100
+    };
+  };
+  
+  const getStreakStatus = () => {
+    const streak = student?.gamification?.currentStreak || 0;
+    const longestStreak = student?.gamification?.longestStreak || 0;
+    
+    return {
+      current: streak,
+      longest: longestStreak,
+      emoji: streak >= 7 ? '🔥' : streak >= 3 ? '💪' : '✨',
+      sparkleCount: Math.min(Math.floor(streak / 3) + 1, 3)
+    };
+  };
+  
+  const getDailyGoalStatus = () => {
+    const dailyGoals = student?.gamification?.dailyGoals;
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (!dailyGoals || dailyGoals.date !== today) {
+      return {
+        completed: 0,
+        target: 3,
+        percentage: 0,
+        isComplete: false
+      };
+    }
+    
+    return {
+      completed: dailyGoals.completed,
+      target: dailyGoals.target,
+      percentage: (dailyGoals.completed / dailyGoals.target) * 100,
+      isComplete: dailyGoals.status === 'completed'
+    };
+  };
+  
+  return {
+    getNextLevelInfo,
+    getStreakStatus,
+    getDailyGoalStatus
+  };
+}
+```
+
+---
+
+## 48-Hour Sprint Timeline
+
+### Hours 0-8: Foundation
+- ✅ Firebase project setup (Firestore, Functions, Hosting, FCM)
+- ✅ React app scaffolding with routing
+- ✅ Authentication flow (mock for demo)
+- ✅ Basic data models in Firestore
+- ✅ OpenAI API integration setup
+- ✅ Mock session data (3-5 sample transcripts)
+
+### Hours 8-16: Core Features
+- ✅ Transcript analysis function
+- ✅ Question generation function
+- ✅ Practice interface UI
+- ✅ Answer evaluation function
+- ✅ Basic chat interface
+- ✅ Progress tracking dashboard
+
+### Hours 16-24: Gamification
+- ✅ Points and level system
+- ✅ Daily goals tracking
+- ✅ Streak calculation
+- ✅ Badge system
+- ✅ Celebration animations
+- ✅ Gamification UI components
+
+### Hours 24-30: Retention Logic
+- ✅ Session counter
+- ✅ Early week nudge function
+- ✅ Goal completion detection
+- ✅ Cross-sell suggestions
+- ✅ Multi-subject progress view
+- ✅ Web notifications setup
+
+### Hours 30-36: Polish & Integration
+- ✅ UI/UX refinements
+- ✅ Error handling
+- ✅ Loading states
+- ✅ Responsive design
+- ✅ Real-time updates with Firestore listeners
+- ✅ Performance optimization
+
+### Hours 36-42: Testing & Debugging
+- ✅ Test all user flows
+- ✅ Test Firebase Functions
+- ✅ Test notifications
+- ✅ Fix bugs
+- ✅ Add analytics tracking
+
+### Hours 42-48: Demo Prep
+- ✅ Deploy to Firebase Hosting
+- ✅ Create demo account with sample data
+- ✅ Record 5-minute demo video
+- ✅ Write documentation
+- ✅ Cost analysis spreadsheet
+- ✅ 90-day roadmap document
+
+---
+
+## Deployment
+
+### Firebase Hosting
+```bash
+# Build React app
+npm run build
+
+# Deploy to Firebase
+firebase deploy --only hosting,functions
+
+# Production URL
+https://ai-study-companion.web.app
+```
+
+### Environment Variables
+```
+REACT_APP_FIREBASE_API_KEY=...
+REACT_APP_FIREBASE_AUTH_DOMAIN=...
+REACT_APP_FIREBASE_PROJECT_ID=...
+REACT_APP_OPENAI_API_KEY=... (in Functions only)
+```
+
+---
+
+## Cost Analysis
+
+### Development Costs (One-time)
+| Item | Cost |
+|------|------|
+| Development Time (48 hours) | $0 (sprint) |
+| Firebase Project Setup | Free |
+| Domain Name (optional) | $12/year |
+| **Total** | **$12** |
+
+### Monthly Operating Costs
+
+#### Firebase Services
+| Service | Usage | Cost |
+|---------|-------|------|
+| Firestore | 1M reads, 500K writes | $7 |
+| Functions | 2M invocations | $0.80 |
+| Hosting | 10GB bandwidth | Free |
+| Cloud Messaging | Unlimited | Free |
+| **Firebase Total** | | **$7.80** |
+
+#### OpenAI API
+| Service | Usage | Cost |
+|---------|-------|------|
+| GPT-4 (analysis) | 3K sessions × $0.06 | $180/day |
+| GPT-3.5 (evaluation) | 9K answers × $0.002 | $18/day |
+| GPT-3.5 (chat) | 5K chats × $0.002 | $10/day |
+| **OpenAI Total** | | **$6,240/month** |
+
+#### Total Monthly Cost
+| Item | Cost |
+|------|------|
+| Firebase | $7.80 |
+| OpenAI | $6,240 |
+| **Total** | **$6,247.80/month** |
+
+**Per Student:** $2.08/month (assuming 3,000 active students)
+
+### Cost Reduction Strategies
+1. Use GPT-3.5-turbo for most operations → Save ~60%
+2. Cache common responses → Save ~20%
+3. Batch processing → Save ~10%
+4. **Optimized monthly cost: ~$2,500**
+
+---
+
+## Success Metrics & KPIs
+
+### Primary Metrics (Business Impact)
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Goal-complete churn rate | <30% (from 52%) | Students leaving after goal complete |
+| Cross-subject enrollment | +25% | Students starting 2nd subject |
+| Week 1 retention | >70% | Students with 3+ sessions in week 1 |
+| Practice engagement | 60% daily active | Students answering questions daily |
+
+### Secondary Metrics (Product Engagement)
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Daily practice completion | 60% | Students completing 3 questions/day |
+| Average streak length | 5 days | Median streak across all students |
+| Chat usage | 40% weekly | Students using chat feature |
+| Notification CTR | >15% | Click-through rate on nudges |
+
+### Technical Metrics
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Transcript processing time | <2 minutes | Time from upload to questions ready |
+| Answer evaluation latency | <3 seconds | Time to receive AI feedback |
+| Chat response time | <2 seconds | Time for AI to respond |
+| System uptime | >99.5% | Availability |
+
+---
+
+## 90-Day Roadmap
+
+### Month 1: Launch & Stabilize
+**Weeks 1-2:**
+- Deploy MVP to production
+- Onboard 100 beta students
+- Monitor system performance
+- Fix critical bugs
+- Collect user feedback
+
+**Weeks 3-4:**
+- Refine AI prompts based on quality feedback
+- Optimize notification timing
+- A/B test cross-sell messaging
+- Improve answer evaluation accuracy
+- Add basic analytics dashboard
+
+**Key Milestone:** 500 active students, 70% practice engagement
+
+### Month 2: Enhance & Expand
+**Weeks 5-6:**
+- Add video explanations for complex topics
+- Implement parent dashboard (view child's progress)
+- Add tutor handoff workflow (seamless booking from chat)
+- Improve multi-subject recommendations
+- Add leaderboard (optional, privacy-conscious)
+
+**Weeks 7-8:**
+- Mobile app development (React Native)
+- Email digest feature (weekly progress reports)
+- Advanced badge system (subject-specific achievements)
+- Integration with calendar for session reminders
+- Personalized study schedules
+
+**Key Milestone:** 1,500 active students, 25% cross-enrollment increase
+
+### Month 3: Scale & Optimize
+**Weeks 9-10:**
+- AI model fine-tuning on collected data
+- Advanced analytics (cohort analysis, churn prediction)
+- Automated tutor coaching based on patterns
+- Integration with learning management systems
+- API for third-party integrations
+
+**Weeks 11-12:**
+- Cost optimization (reduce OpenAI costs by 50%)
+- Performance improvements (sub-second responses)
+- A/B test gamification variations
+- Launch referral program
+- Prepare for full rollout
+
+**Key Milestone:** 3,000+ active students, <30% goal-complete churn
+
+### Future Features (Beyond 90 Days)
+- Voice-based interaction
+- AR/VR study experiences
+- Peer collaboration features
+- Advanced AI tutoring (not just Q&A)
+- Multi-language support
+- Integration with school curricula
+
+---
+
+## Risk Mitigation
+
+### Technical Risks
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| OpenAI API downtime | High | Implement fallback to cached responses, queue system |
+| Firebase quota limits | Medium | Monitor usage, implement rate limiting, upgrade plan |
+| Poor AI answer quality | High | Human review loop, confidence thresholds, feedback system |
+| Notification spam | Low | Frequency caps, user preferences, smart timing |
+
+### Business Risks
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Low student adoption | High | User testing, simple onboarding, clear value prop |
+| Tutor resistance | Medium | Show how it helps them (better-prepared students) |
+| Privacy concerns | High | Clear data policies, secure storage, parental controls |
+| High operational costs | Medium | Cost monitoring, optimization, usage-based pricing |
+
+### Product Risks
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Gamification backfires | Low | Make opt-in, A/B test, avoid excessive pressure |
+| Cross-sell feels pushy | Medium | Test messaging, provide value first, gentle suggestions |
+| Feature creep | Low | Strict MVP scope, prioritize based on data |
+
+---
+
+## Appendix
+
+### A. Cross-Sell Mapping
+```javascript
+const CROSS_SELL_MAP = {
+  "SAT Math": ["College Essays", "AP Calculus", "SAT Reading"],
+  "SAT Reading": ["College Essays", "AP English", "SAT Math"],
+  "Chemistry": ["Physics", "Biology", "AP Chemistry"],
+  "Algebra": ["Geometry", "Pre-Calculus", "Trigonometry"],
+  "Spanish": ["French", "Italian", "AP Spanish"],
+  "AP Calc": ["AP Physics", "AP Statistics", "College Math"]
+};
+```
+
+### B. Badge Definitions (Complete List)
+See Gamification System section for full badge table.
+
+### C. Sample Transcript
+```
+[00:00:00] Tutor: Hi Marcus! Today we're going to work on polynomial division.
+[00:00:05] Student: Okay, but I'm not super confident with this topic.
+[00:00:10] Tutor: That's totally fine! We'll take it step by step. Let's start with a simple one: (x² + 5x + 6) ÷ (x + 2)
+[00:00:30] Student: Um... is it x + 3?
+[00:00:32] Tutor: Exactly! Great job. You factored it perfectly. Now let's try something a bit harder.
+[00:01:00] Tutor: Try this: (x³ + 4x² - 2x + 1) ÷ (x - 2)
+[00:01:45] Student: This is confusing... I don't know where to start.
+[00:01:50] Tutor: No problem. Let me show you synthetic division. It's a shortcut that makes this much easier.
+[00:02:30] Tutor: [Draws out synthetic division process]
+[00:03:15] Student: Oh! That makes way more sense now.
+[00:03:20] Tutor: Awesome! Now you try this one: (2x³ - 5x² + 3x - 7) ÷ (x + 1)
+[00:04:30] Student: [Works through problem] I got 2x² - 7x + 10 remainder -17
+[00:04:35] Tutor: Perfect! You nailed it. See how much faster that was?
+[00:05:00] Student: Yeah, this is actually starting to make sense.
+```
+
+### D. API Endpoints (Firebase Functions)
+```
+POST /evaluateAnswer
+  - Evaluates student answer
+  - Awards points and badges
+  - Returns feedback
+
+POST /generateChatResponse
+  - AI chat conversation
+  - Context-aware responses
+  
+POST /bookSession
+  - Schedules tutoring session
+  - Integrates with calendar
+
+GET /getRecommendations
+  - Cross-sell suggestions
+  - Based on completed goals
+```
+
+---
+
+## Document Version History
+- v1.0 (Nov 4, 2025): Initial PRD for 48-hour sprint
+
+---
+
+**END OF PRD**

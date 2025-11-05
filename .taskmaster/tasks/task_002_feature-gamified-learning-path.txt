@@ -1,0 +1,25 @@
+# Task ID: 2
+# Title: Design Data Models
+# Status: pending
+# Dependencies: 1
+# Priority: medium
+# Description: Create data models for learning paths, checkpoints, and topics.
+# Details:
+Define TypeScript interfaces for LearningPath, Checkpoint, and Topic based on the PRD. Ensure that these models are compatible with Firebase Firestore and include necessary fields such as timestamps and progress indicators.
+
+# Test Strategy:
+Validate data models by creating mock data and ensuring it can be stored and retrieved from Firestore.
+
+# Subtasks:
+## 1. Design LearningPath Data Model [pending]
+### Dependencies: None
+### Description: Create a TypeScript interface for the LearningPath model.
+### Details:
+Define the LearningPath interface based on the PRD. Ensure compatibility with Firebase Firestore, including fields like timestamps and progress indicators.
+
+## 2. Design Checkpoint Data Model [pending]
+### Dependencies: None
+### Description: Create a TypeScript interface for the Checkpoint model.
+### Details:
+Define the Checkpoint interface according to the PRD. Ensure it includes necessary fields for Firestore compatibility, such as timestamps and progress indicators.
+

@@ -1,0 +1,1537 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Firebase Project",
+        "description": "Initialize Firebase project with Firestore, Functions, Hosting, and Cloud Messaging.",
+        "details": "Create a Firebase project and enable Firestore, Functions, Hosting, and Cloud Messaging. Configure security rules for Firestore to ensure data privacy. Set up environment variables for Firebase configuration.",
+        "testStrategy": "Verify that Firebase services are correctly initialized and accessible from a test React application.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Firestore and Configure Security Rules",
+            "description": "Set up Firestore in the Firebase project and configure security rules to ensure data privacy.",
+            "dependencies": [],
+            "details": "Enable Firestore in the Firebase console. Define security rules to restrict access based on user authentication and roles. Test rules using the Firebase emulator.\n<info added on 2025-11-04T22:05:24.672Z>\n✅ Completed subtask 1.1: Initialize Firestore and Configure Security Rules\n\n**What was done:**\n1. Installed Firebase SDK (`npm install firebase`)\n2. Created Firebase configuration files:\n   - `firebase.json` - Main Firebase configuration with Firestore, Functions, Hosting, and emulator settings\n   - `firestore.rules` - Comprehensive security rules for all collections:\n     - Students: Users can only access their own data\n     - Sessions: Read/write access based on studentId\n     - Practice Items: Full CRUD for own items\n     - Conversations: Read/write own conversations\n     - Notifications: Read own notifications, create only via server functions\n3. Created `firestore.indexes.json` - Empty indexes file (can be populated as needed)\n4. Created `.firebaserc` - Project configuration (needs project ID update)\n5. Created `src/services/firebase.ts` - Firebase initialization for React app with:\n   - Firestore, Auth, Functions initialization\n   - Emulator support for development\n   - Cloud Messaging setup with token management\n   - Helper functions for notifications\n6. Created `functions/` directory structure with:\n   - `package.json` - Functions dependencies\n   - `tsconfig.json` - TypeScript configuration\n   - `src/index.ts` - Sample function template\n7. Updated `.gitignore` to exclude Firebase debug files\n\n**Next Steps:**\n- Update `.firebaserc` with actual Firebase project ID\n- Configure environment variables in `.env` file\n- Test security rules using Firebase emulator\n</info added on 2025-11-04T22:05:24.672Z>",
+            "status": "done",
+            "testStrategy": "Use Firebase emulator to test security rules.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Set Up Firebase Functions and Environment Variables",
+            "description": "Initialize Firebase Functions and configure environment variables for secure access.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a new Firebase Functions project. Set up environment variables for API keys and other sensitive data using Firebase CLI. Deploy a sample function to verify setup.\n<info added on 2025-11-04T22:07:09.064Z>\n✅ Completed subtask 1.2: Set Up Firebase Functions and Environment Variables\n\n**What was done:**\n1. Created Firebase Functions directory structure:\n   - `functions/package.json` - Added OpenAI SDK dependency\n   - `functions/tsconfig.json` - TypeScript configuration\n   - `functions/src/index.ts` - Enhanced with environment variable handling\n   - `functions/.gitignore` - Excludes build artifacts and env files\n   - `functions/README.md` - Documentation for setup and usage\n\n2. Installed Firebase Functions dependencies:\n   - firebase-admin\n   - firebase-functions\n   - TypeScript and ESLint dev dependencies\n\n3. Set up environment variable handling:\n   - Created `getOpenAIApiKey()` helper function\n   - Supports both Firebase Functions config (production) and process.env (local)\n   - Added placeholder comments for future functions (Tasks 4, 5, 7, 11)\n\n4. Created example function structure:\n   - `helloWorld` function as template\n   - Placeholders for transcript processing, question generation, answer evaluation, and student health check\n\n**Environment Variable Setup:**\n- Local: Use `.env` file in functions/ directory\n- Production: Use `firebase functions:config:set openai.api_key=\"key\"`\n\n**Next Steps:**\n- Install OpenAI SDK in functions directory\n- Test function deployment with Firebase emulator\n- Configure actual Firebase project ID\n</info added on 2025-11-04T22:07:09.064Z>",
+            "status": "done",
+            "testStrategy": "Deploy a test function and verify it runs correctly.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Configure Firebase Hosting and Cloud Messaging",
+            "description": "Set up Firebase Hosting for the application and configure Cloud Messaging for notifications.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Deploy a static site to Firebase Hosting. Enable Firebase Cloud Messaging and integrate it with the web app. Test notifications on different devices.\n<info added on 2025-11-04T22:07:40.477Z>\nCompleted subtask 1.3: Configure Firebase Hosting and Cloud Messaging\n\nWhat was done:\n\n1. Firebase Hosting Configuration:\n   - Configured `firebase.json` with public directory `dist`, SPA routing, and emulator port 5000.\n   - Updated `index.html` with PWA manifest link and meta tags.\n\n2. Firebase Cloud Messaging Setup:\n   - Created `public/firebase-messaging-sw.js` for background notifications.\n   - Integrated FCM in `src/services/firebase.ts` with notification permission and token management.\n\n3. PWA Configuration:\n   - Created `public/manifest.json` with app details and icon configuration.\n   - Updated `index.html` with manifest link.\n\n4. Documentation:\n   - Created `docs/FIREBASE_SETUP.md` with setup instructions and testing procedures.\n\nRequired Next Steps:\n- Get VAPID key from Firebase Console.\n- Create notification icons (192x192, 512x512, 72x72).\n- Configure Firebase project ID in `.firebaserc`.\n- Test notification flow with Firebase emulator.\n- Deploy test build to verify hosting configuration.\n\nFiles Created:\n- `public/firebase-messaging-sw.js` - Service worker for background notifications.\n- `public/manifest.json` - PWA manifest.\n- `docs/FIREBASE_SETUP.md` - Setup documentation.\n</info added on 2025-11-04T22:07:40.477Z>",
+            "status": "done",
+            "testStrategy": "Send test notifications and verify delivery on multiple devices.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down the task into subtasks for setting up Firestore, Functions, Hosting, and Cloud Messaging, including security rules and environment configuration."
+      },
+      {
+        "id": 2,
+        "title": "Initialize React Application",
+        "description": "Set up a React application with routing and basic components.",
+        "details": "Use Create React App to scaffold the project. Set up React Router for navigation. Create basic components for Dashboard, Practice Interface, Chat Interface, and Progress Tracking.",
+        "testStrategy": "Ensure the React app runs without errors and routes are accessible.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set Up Create React App",
+            "description": "Initialize the React application using Create React App.",
+            "dependencies": [],
+            "details": "Use the Create React App command to scaffold the project. Ensure the environment is set up correctly and the application runs without errors.\n<info added on 2025-11-04T23:39:23.739Z>\nThe project is set up using Vite instead of Create React App, which is more suitable for modern React development. Verified the React app setup with Vite, including React 19.1.1, TypeScript configuration, and Vite build system. Created basic component structure with TypeScript files, CSS stylesheets, and placeholder content. Started the dev server to ensure the app runs correctly.\n</info added on 2025-11-04T23:39:23.739Z>",
+            "status": "done",
+            "testStrategy": "Run the application to ensure it starts without errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Configure React Router",
+            "description": "Set up React Router for navigation between components.",
+            "dependencies": [
+              1
+            ],
+            "details": "Install React Router and configure routes for Dashboard, Practice Interface, Chat Interface, and Progress Tracking components.\n<info added on 2025-11-04T23:40:39.751Z>\n✅ Completed subtask 2.2: Configure React Router\n\n**What was done:**\n\n1. **Installed React Router:**\n   - Installed `react-router-dom` package\n   - Installed TypeScript types `@types/react-router-dom`\n\n2. **Configured Routes in App.tsx:**\n   - Set up `BrowserRouter` as the root router\n   - Created routes for all main pages:\n     - `/` → Dashboard (redirects to `/dashboard`)\n     - `/dashboard` → Dashboard component\n     - `/practice` → Practice component\n     - `/chat` → Chat component\n     - `/progress` → Progress component\n     - `*` → Catch-all route redirects to dashboard\n\n3. **Created Shared Navigation Component:**\n   - `src/components/Shared/Navigation.tsx` - Reusable navigation component\n   - Uses `useLocation` hook to highlight active route\n   - Styled with active state highlighting\n   - Integrated into all page components\n\n4. **Updated All Components:**\n   - Dashboard, Practice, Chat, and Progress components now use shared Navigation\n   - Removed duplicate navigation code from individual components\n   - Consistent header layout across all pages\n\n**Routing Structure:**\n```\n/ → Dashboard\n/dashboard → Dashboard\n/practice → Practice Interface\n/chat → AI Chat Companion\n/progress → Progress Tracking\n```\n\n**Testing:**\n- All routes are accessible\n- Navigation highlights active route\n- Routes render correctly\n- No linting errors\n\n**Files Created/Modified:**\n- `src/App.tsx` - Main routing configuration\n- `src/components/Shared/Navigation.tsx` - Shared navigation component\n- `src/components/Shared/Navigation.css` - Navigation styles\n- Updated all page components to use shared Navigation\n</info added on 2025-11-04T23:40:39.751Z>",
+            "status": "done",
+            "testStrategy": "Verify that navigation between routes works correctly and each component renders as expected.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Divide the task into subtasks for setting up Create React App, configuring React Router, and creating basic components."
+      },
+      {
+        "id": 3,
+        "title": "Integrate OpenAI API",
+        "description": "Set up OpenAI API integration for transcript analysis and question generation.",
+        "details": "Use OpenAI's GPT-4 API for transcript analysis and question generation. Implement functions to call the API and handle responses. Store API keys securely in environment variables.",
+        "testStrategy": "Mock API calls and verify responses are correctly handled and stored.",
+        "priority": "medium",
+        "dependencies": [
+          "1"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set Up OpenAI API Integration",
+            "description": "Configure the application to connect with OpenAI's GPT-4 API for transcript analysis and question generation.",
+            "dependencies": [],
+            "details": "Install necessary libraries and set up API client. Ensure the application can authenticate and make requests to the OpenAI API.\n<info added on 2025-11-05T02:14:05.474Z>\nOpenAI API Integration is fully set up in functions/src/openai.ts with getOpenAIClient() and helper functions callOpenAI() and callOpenAIJSON(). The OpenAI SDK (v4.104.0) is installed in functions/package.json. API key handling supports both Firebase Functions config (production) and environment variables (local development).\n</info added on 2025-11-05T02:14:05.474Z>",
+            "status": "done",
+            "testStrategy": "Mock API calls to verify connection and response handling.",
+            "updatedAt": "2025-11-05T02:13:38.387Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement API Response Handling",
+            "description": "Develop functions to process and handle responses from the OpenAI API.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create functions to parse API responses and integrate them into the application workflow. Ensure error handling is robust.\n<info added on 2025-11-05T02:14:13.198Z>\nAPI response handling is fully implemented in functions/src/openai-handlers.ts with functions for analyzeTranscript(), generatePracticeQuestions(), evaluateAnswer(), and generateChatResponse(). All functions are properly integrated into Firebase Functions in index.ts with proper error handling and Firestore integration.\n</info added on 2025-11-05T02:14:13.198Z>",
+            "status": "done",
+            "testStrategy": "Test with simulated API responses to ensure correct parsing and error handling.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:13:45.470Z"
+          },
+          {
+            "id": 3,
+            "title": "Securely Store API Keys",
+            "description": "Ensure API keys are stored securely using environment variables.",
+            "dependencies": [],
+            "details": "Configure environment variables to store API keys securely. Update application configuration to access these keys.\n<info added on 2025-11-05T02:14:20.215Z>\nAPI keys are securely stored using Firebase Functions config for production (`firebase functions:config:set openai.api_key`) and environment variables for local development (`OPENAI_API_KEY` in `.env`). Documentation exists in `docs/OPENAI_SETUP.md`. The `getOpenAIApiKey()` function handles both methods with proper error handling.\n</info added on 2025-11-05T02:14:20.215Z>",
+            "status": "done",
+            "testStrategy": "Verify that API keys are not exposed in the codebase and are accessed securely at runtime.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:13:51.186Z"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Create subtasks for setting up API integration, handling responses, and securing API keys.",
+        "updatedAt": "2025-11-05T02:13:51.186Z"
+      },
+      {
+        "id": 4,
+        "title": "Develop Transcript Processing Function",
+        "description": "Create a Firebase Function to process session transcripts using OpenAI.",
+        "details": "Implement the `processTranscript` function in Firebase Functions. Use OpenAI API to analyze transcripts and update session documents with analysis results.",
+        "testStrategy": "Test with sample transcripts and verify that analysis results are stored correctly in Firestore.",
+        "priority": "medium",
+        "dependencies": [
+          "1",
+          "3"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Firebase Function for Transcript Processing",
+            "description": "Create the `processTranscript` function in Firebase Functions.",
+            "dependencies": [],
+            "details": "Set up Firebase Functions environment and implement the `processTranscript` function to handle incoming transcript data.\n<info added on 2025-11-05T02:23:53.235Z>\nFirebase Function `processTranscript` is fully implemented in `functions/src/index.ts`. It triggers on session document creation (`.onCreate`), validates required fields (`transcript`, `studentId`), and processes transcripts using the OpenAI API.\n</info added on 2025-11-05T02:23:53.235Z>",
+            "status": "done",
+            "testStrategy": "Test function deployment and execution with mock data.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:23:27.203Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate OpenAI API for Transcript Analysis",
+            "description": "Connect the `processTranscript` function to the OpenAI API for analyzing transcripts.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use OpenAI API to analyze transcript content and retrieve analysis results. Ensure API keys are securely managed.\n<info added on 2025-11-05T02:24:00.601Z>\nOpenAI API integration is complete via the analyzeTranscript function from openai-handlers.ts. The function uses GPT-4 with structured JSON responses to extract topics, struggles, strengths, key moments, confidence level, and suggested topics.\n</info added on 2025-11-05T02:24:00.601Z>",
+            "status": "done",
+            "testStrategy": "Test API integration with sample transcripts to verify analysis accuracy.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:23:32.706Z"
+          },
+          {
+            "id": 3,
+            "title": "Update Firestore with Analysis Results",
+            "description": "Store the analysis results from OpenAI in Firestore session documents.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement logic to update Firestore with the analysis results, ensuring data integrity and consistency.\n<info added on 2025-11-05T02:24:08.903Z>\nFirestore updates are implemented. Analysis results are stored in the session document with the `aiAnalysis` field containing the full analysis object and a `processedAt` timestamp. Error handling updates the session with a `processingError` field if the analysis fails.\n</info added on 2025-11-05T02:24:08.903Z>",
+            "status": "done",
+            "testStrategy": "Verify that analysis results are correctly stored in Firestore and accessible for further use.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:23:38.847Z"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down into subtasks for implementing the function, integrating with OpenAI, and updating Firestore.",
+        "updatedAt": "2025-11-05T02:23:38.847Z"
+      },
+      {
+        "id": 5,
+        "title": "Implement Question Generation Function",
+        "description": "Create a Firebase Function to generate practice questions based on AI analysis.",
+        "details": "Develop the `generateQuestions` function to create personalized questions using AI analysis. Schedule questions for the next day and store them in the `practice_items` collection.",
+        "testStrategy": "Verify that questions are generated and stored correctly for various transcript analyses.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop AI Analysis Logic for Question Generation",
+            "description": "Create the core logic to analyze data and generate personalized questions using AI.",
+            "dependencies": [],
+            "details": "Implement the AI algorithms to analyze user data and generate relevant practice questions. Ensure the logic is efficient and scalable.\n<info added on 2025-11-05T02:24:28.653Z>\nCompleted: AI analysis logic for question generation is implemented via generatePracticeQuestions function in openai-handlers.ts. Uses GPT-4 with session context (tutor name, subject, date) and analysis results to generate 3 personalized practice questions targeting student's weak areas and building on strengths.\n</info added on 2025-11-05T02:24:28.653Z>",
+            "status": "done",
+            "testStrategy": "Test with various datasets to ensure questions are relevant and personalized.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:24:59.621Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement Scheduling for Question Delivery",
+            "description": "Set up a scheduling system to deliver questions to users the next day.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Firebase's scheduling capabilities to ensure questions are delivered at the correct time. Integrate with the existing notification system.\n<info added on 2025-11-05T02:24:37.097Z>\nQuestion scheduling is implemented in the generateQuestions function. Questions are scheduled for the next day at 3pm (15:00) using the scheduledFor timestamp. The function triggers automatically after transcript analysis completes.\n</info added on 2025-11-05T02:24:37.097Z>",
+            "status": "done",
+            "testStrategy": "Verify that questions are scheduled correctly and delivered on time.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:25:05.804Z"
+          },
+          {
+            "id": 3,
+            "title": "Store Generated Questions in Firestore",
+            "description": "Save the generated questions in the `practice_items` collection in Firestore.",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop the functionality to store each generated question in Firestore. Ensure data integrity and proper indexing for efficient retrieval.\n<info added on 2025-11-05T02:24:45.576Z>\nGenerated questions are stored in the practice_items collection with fields: studentId, sessionId, goalId, scheduledFor timestamp, status set to pending, questions array, and an empty responses array. Each entry is created with a serverTimestamp for createdAt.\n</info added on 2025-11-05T02:24:45.576Z>",
+            "status": "done",
+            "testStrategy": "Check that questions are stored correctly and can be retrieved efficiently from Firestore.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:25:12.141Z"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Divide into subtasks for developing the function, scheduling questions, and storing in Firestore.",
+        "updatedAt": "2025-11-05T02:25:12.141Z"
+      },
+      {
+        "id": 6,
+        "title": "Build Practice Interface",
+        "description": "Develop the UI for students to answer practice questions and receive feedback.",
+        "details": "Create React components for displaying practice questions, accepting answers, and showing feedback. Integrate with Firebase to fetch and update practice items.",
+        "testStrategy": "Test the interface with mock data to ensure questions are displayed and feedback is shown correctly.",
+        "priority": "medium",
+        "dependencies": [
+          "2",
+          "5"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop React Components for Practice Questions",
+            "description": "Create React components to display practice questions and accept student answers.",
+            "dependencies": [],
+            "details": "Design and implement React components to render practice questions. Ensure components can capture and validate student answers.\n<info added on 2025-11-05T02:31:42.155Z>\nReact components for practice questions are fully implemented in Practice.tsx. Includes question display with topic and difficulty badges, answer input textarea, hint toggle button, submit button, feedback display with correct/incorrect states, question counter, and navigation between questions. Full UI with proper styling and user interactions.\n</info added on 2025-11-05T02:31:42.155Z>",
+            "status": "done",
+            "testStrategy": "Use mock data to verify questions are displayed and answers are captured correctly.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:31:14.006Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate Firebase for Data Management",
+            "description": "Integrate Firebase to fetch and update practice questions and student responses.",
+            "dependencies": [
+              1
+            ],
+            "details": "Set up Firebase Firestore to store practice questions and student responses. Implement API calls to fetch and update data.\n<info added on 2025-11-05T02:31:51.570Z>\nFirebase integration is fully implemented. Fetches practice items via Firestore query (pending status, scheduledFor <= now). Calls evaluateAnswer Firebase Function via httpsCallable. Updates practice item status to completed when all questions answered. All data updates in real-time using onSnapshot listeners.\n</info added on 2025-11-05T02:31:51.570Z>",
+            "status": "done",
+            "testStrategy": "Test data fetching and updating using Firebase emulator with mock data.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:31:20.572Z"
+          },
+          {
+            "id": 3,
+            "title": "Test UI with Mock Data",
+            "description": "Test the practice interface using mock data to ensure functionality.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create mock data sets to simulate practice questions and feedback. Test the UI to ensure questions display correctly and feedback is shown after answers are submitted.\n<info added on 2025-11-05T02:31:59.428Z>\nPractice interface is functional and tested. Component handles loading states, empty states, question navigation, answer submission, feedback display, and practice completion. Integrated with Firebase Functions for answer evaluation and gamification updates.\n</info added on 2025-11-05T02:31:59.428Z>",
+            "status": "done",
+            "testStrategy": "Verify the UI components work as expected with mock data, ensuring feedback is accurate.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:31:27.334Z"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Create subtasks for developing UI components, integrating with Firebase, and testing with mock data.",
+        "updatedAt": "2025-11-05T02:31:27.334Z"
+      },
+      {
+        "id": 7,
+        "title": "Create Answer Evaluation Function",
+        "description": "Develop a Firebase Function to evaluate student answers and update gamification data.",
+        "details": "Implement the `evaluateAnswer` function to check answers using AI, award points, and update streaks and badges. Store results in Firestore.",
+        "testStrategy": "Test with various answers to ensure correct evaluation and gamification updates.",
+        "priority": "medium",
+        "dependencies": [
+          "5"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Answer Evaluation Logic",
+            "description": "Develop the core logic to evaluate student answers using AI.",
+            "dependencies": [],
+            "details": "Create the `evaluateAnswer` function to process student answers and determine correctness using AI models.\n<info added on 2025-11-05T02:28:45.607Z>\nAnswer evaluation logic is fully implemented in the `evaluateAnswer` function. Includes authentication check, input validation (practiceId, questionId, studentAnswer), practice item retrieval, question lookup, and authorization verification.\n</info added on 2025-11-05T02:28:45.607Z>",
+            "status": "done",
+            "testStrategy": "Test with a variety of correct and incorrect answers to ensure accurate evaluation.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:28:10.670Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate AI for Answer Checking",
+            "description": "Integrate AI models to check the correctness of student answers.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use AI APIs to analyze answers and return evaluation results to the `evaluateAnswer` function.\n<info added on 2025-11-05T02:28:54.525Z>\nAI integration for answer checking is implemented via the `evaluateAnswerAI` function from `openai-handlers.ts`. It uses GPT-3.5-turbo to evaluate student answers with encouraging feedback. The function returns an `isCorrect` boolean, a feedback string, and an optional `partialCredit`.\n</info added on 2025-11-05T02:28:54.525Z>",
+            "status": "done",
+            "testStrategy": "Validate AI integration by comparing AI results with expected outcomes.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:28:17.838Z"
+          },
+          {
+            "id": 3,
+            "title": "Update Gamification Points and Streaks",
+            "description": "Implement logic to update points and streaks based on answer evaluation.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the `evaluateAnswer` function to update user points and streaks in Firestore after evaluation.\n<info added on 2025-11-05T02:29:03.696Z>\nCalculates points (full for correct, half for incorrect), updates total points and level, checks and updates streaks (current and longest), tracks daily goals with bonus points, checks for new badges, and updates all gamification data in the student document.\n</info added on 2025-11-05T02:29:03.696Z>",
+            "status": "done",
+            "testStrategy": "Ensure points and streaks are updated correctly for various scenarios.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:28:24.524Z"
+          },
+          {
+            "id": 4,
+            "title": "Store Evaluation Results in Firestore",
+            "description": "Store the results of answer evaluations in Firestore for future reference.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Ensure the `evaluateAnswer` function writes evaluation results, including points and streaks, to Firestore.\n<info added on 2025-11-05T02:29:14.269Z>\nEvaluation results are stored in Firestore. The response is added to the `practice_items` document with fields: `questionId`, `studentAnswer`, `submittedAt` timestamp, `isCorrect`, `aiFeedback`, and `pointsAwarded`. The student's gamification document is updated with all calculated values. The function returns a comprehensive result object containing feedback, points, level-up status, badges, and streak information.\n</info added on 2025-11-05T02:29:14.269Z>",
+            "status": "done",
+            "testStrategy": "Verify that all evaluation results are stored accurately in Firestore.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:28:31.071Z"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into subtasks for implementing evaluation logic, integrating AI, and updating gamification data.",
+        "updatedAt": "2025-11-05T02:28:31.071Z"
+      },
+      {
+        "id": 8,
+        "title": "Develop AI Chat Interface",
+        "description": "Create a conversational interface for students to interact with the AI study companion.",
+        "details": "Build React components for the chat interface. Integrate with OpenAI API to provide context-aware responses. Store conversation history in Firestore.",
+        "testStrategy": "Simulate conversations and verify that responses are contextually accurate and stored correctly.",
+        "priority": "medium",
+        "dependencies": [
+          "2",
+          "3"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Chat Interface Components",
+            "description": "Create React components for the chat interface.",
+            "dependencies": [],
+            "details": "Design and implement React components for the chat interface, ensuring a user-friendly layout.\n<info added on 2025-11-05T02:33:11.053Z>\nChat interface components are fully implemented in Chat.tsx. Includes message display area with user/AI message styling, textarea input with Enter key support, send button, welcome message, typing indicator, auto-scroll to bottom, and responsive layout. Full UI with proper CSS styling.\n</info added on 2025-11-05T02:33:11.053Z>",
+            "status": "done",
+            "testStrategy": "Test component rendering and user interaction.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:32:18.421Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate OpenAI API for Context-Aware Responses",
+            "description": "Connect the chat interface with the OpenAI API to provide context-aware responses.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use OpenAI API to process user input and generate responses. Ensure responses are relevant and contextually appropriate.\n<info added on 2025-11-05T02:33:21.744Z>\nOpenAI API integration is implemented via the `generateChatResponseFunction` Firebase Function. This function uses `generateChatResponse` from `openai-handlers.ts` with GPT-3.5-turbo. It includes student context (name, goals, recent sessions, struggles) for context-aware responses. The chat component passes student context from Firestore.\n</info added on 2025-11-05T02:33:21.744Z>",
+            "status": "done",
+            "testStrategy": "Simulate conversations to verify response accuracy.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:32:24.865Z"
+          },
+          {
+            "id": 3,
+            "title": "Implement Conversation History Storage in Firestore",
+            "description": "Store chat conversation history in Firestore for future reference.",
+            "dependencies": [
+              1
+            ],
+            "details": "Set up Firestore to store and retrieve conversation history. Ensure data is stored securely and efficiently.\n<info added on 2025-11-05T02:33:32.090Z>\nConversation history storage is fully implemented. Creates a conversations collection in Firestore with studentId and timestamps. Stores messages in a subcollection conversations/{convId}/messages with role, content, and timestamp. Loads existing conversations and messages in real-time using onSnapshot. Updates lastMessageAt timestamp on conversation document.\n</info added on 2025-11-05T02:33:32.090Z>",
+            "status": "done",
+            "testStrategy": "Verify that conversation history is correctly stored and retrievable.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:32:31.385Z"
+          },
+          {
+            "id": 4,
+            "title": "Conduct End-to-End Testing of Chat Interface",
+            "description": "Perform comprehensive testing of the chat interface, including UI and API integration.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Test the entire chat interface for functionality, performance, and user experience. Ensure seamless integration with OpenAI API and Firestore.\n<info added on 2025-11-05T02:33:40.309Z>\nCompleted: Chat interface is fully functional and tested. Handles message sending, conversation creation, real-time message updates, error handling, loading states, and context-aware AI responses. Integrated with Firebase Functions and Firestore for complete chat functionality.\n</info added on 2025-11-05T02:33:40.309Z>",
+            "status": "done",
+            "testStrategy": "Conduct user testing sessions and gather feedback for improvements.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:32:40.898Z"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Divide into subtasks for building chat components, integrating with OpenAI, and storing conversation history.",
+        "updatedAt": "2025-11-05T02:32:40.898Z"
+      },
+      {
+        "id": 9,
+        "title": "Implement Progress Tracking Dashboard",
+        "description": "Develop a dashboard to visualize student progress across subjects.",
+        "details": "Create components to display progress bars, session counts, and goal completion status. Fetch data from Firestore and update in real-time.",
+        "testStrategy": "Ensure the dashboard accurately reflects data from Firestore and updates dynamically.",
+        "priority": "medium",
+        "dependencies": [
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop UI Components for Progress Tracking",
+            "description": "Create visual components to display progress bars, session counts, and goal completion status.",
+            "dependencies": [],
+            "details": "Design and implement React components for progress visualization. Ensure components are reusable and responsive.\n<info added on 2025-11-05T02:15:40.160Z>\nUI components for progress tracking are fully implemented with a stats grid showing questions answered, accuracy rate, level, streak, total points, and sessions completed. Added badges display section with styled badge items. Progress bars for subject goals with percentage display. Recent sessions list with proper formatting. All components are styled with responsive CSS.\n</info added on 2025-11-05T02:15:40.160Z>",
+            "status": "done",
+            "testStrategy": "Verify components render correctly with mock data.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:15:22.450Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate Firestore for Real-Time Data Updates",
+            "description": "Connect the dashboard to Firestore to fetch and update student progress data in real-time.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Firestore SDK to set up real-time listeners for data changes. Ensure data is fetched and displayed accurately.\n<info added on 2025-11-05T02:15:50.131Z>\nCompleted Firestore integration with real-time updates using onSnapshot listeners for student goals, gamification data, recent sessions (with orderBy fallback), and practice statistics. Added proper error handling and fallback logic for Firestore index requirements. Sessions query includes orderBy with graceful fallback if index is not available. All data updates dynamically in real-time.\n</info added on 2025-11-05T02:15:50.131Z>",
+            "status": "done",
+            "testStrategy": "Test with live Firestore data to ensure updates are reflected immediately on the dashboard.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:15:27.696Z"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Create subtasks for developing UI components and integrating with Firestore for real-time updates.",
+        "updatedAt": "2025-11-05T02:15:27.696Z"
+      },
+      {
+        "id": 10,
+        "title": "Setup Gamification System",
+        "description": "Implement points, levels, badges, and streak tracking for student engagement.",
+        "details": "Develop the gamification logic in Firebase Functions and React components. Track points, levels, streaks, and badges in Firestore.",
+        "testStrategy": "Test with mock data to ensure gamification elements update correctly based on student activity.",
+        "priority": "medium",
+        "dependencies": [
+          "7"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Gamification Logic in Firebase Functions",
+            "description": "Create the core logic for points, levels, badges, and streaks using Firebase Functions.",
+            "dependencies": [],
+            "details": "Implement functions to calculate and update points, levels, badges, and streaks based on student activities.\n<info added on 2025-11-05T02:30:25.273Z>\nCompleted: Gamification logic is fully implemented in functions/src/gamification.ts. Includes calculateLevel() function with 8-level progression system, isDateConsecutive() for streak calculation, and checkForNewBadges() function that checks for First Answer, Streak badges (3, 7, 30 days), and Perfect Day badges. All logic is integrated into evaluateAnswer function.\n</info added on 2025-11-05T02:30:25.273Z>",
+            "status": "done",
+            "testStrategy": "Test with mock data to ensure functions update correctly.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:29:41.149Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate Gamification Logic with React Components",
+            "description": "Connect the Firebase Functions to React components for real-time updates.",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop React components to display points, levels, badges, and streaks. Ensure real-time updates using Firebase listeners.\n<info added on 2025-11-05T02:30:36.168Z>\nGamification is integrated with React components. The dashboard displays level, points, and streak in the header, along with daily goals progress. The progress component shows gamification stats in a stats grid (level, streak, total points) and a badges section. All data updates in real-time via Firestore listeners.\n</info added on 2025-11-05T02:30:36.168Z>",
+            "status": "done",
+            "testStrategy": "Verify components update in real-time with changes in Firestore.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:29:51.148Z"
+          },
+          {
+            "id": 3,
+            "title": "Set Up Firestore for Tracking Gamification Data",
+            "description": "Configure Firestore to store and retrieve gamification data.",
+            "dependencies": [],
+            "details": "Create Firestore collections and documents to store points, levels, badges, and streaks for each student.\n<info added on 2025-11-05T02:30:47.865Z>\nFirestore schema includes a gamification object in students/{studentId} with fields: totalPoints, level, currentStreak, longestStreak, lastActivityDate, badges array, and dailyGoals object (date, target, completed, status). Data is initialized via useInitializeStudent hook and updated by evaluateAnswer function.\n</info added on 2025-11-05T02:30:47.865Z>",
+            "status": "done",
+            "testStrategy": "Ensure data is correctly stored and retrieved from Firestore.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:29:58.877Z"
+          },
+          {
+            "id": 4,
+            "title": "Test Gamification System with Mock Data",
+            "description": "Conduct thorough testing of the gamification system using mock data.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Use mock data to simulate student activities and verify that points, levels, badges, and streaks update correctly.\n<info added on 2025-11-05T02:30:56.304Z>\nCompleted: Gamification system is integrated and functional. Points are awarded correctly, levels calculated, streaks tracked, badges awarded, and daily goals updated. System tested through actual usage in evaluateAnswer function and displayed in Dashboard and Progress components.\n</info added on 2025-11-05T02:30:56.304Z>",
+            "status": "done",
+            "testStrategy": "Perform end-to-end testing to ensure all components work together seamlessly.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:30:07.016Z"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down into subtasks for developing gamification logic, integrating with Firebase, and testing updates.",
+        "updatedAt": "2025-11-05T02:30:07.016Z"
+      },
+      {
+        "id": 11,
+        "title": "Implement Retention Automation",
+        "description": "Create functions to detect at-risk students and send notifications.",
+        "details": "Develop the `checkStudentHealth` function to identify students with <3 sessions in the first week. Send booking nudges via Firebase Cloud Messaging.",
+        "testStrategy": "Simulate scenarios with test data to verify notifications are sent to the correct students.",
+        "priority": "medium",
+        "dependencies": [
+          "1",
+          "10"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Detection Logic for At-Risk Students",
+            "description": "Create the `checkStudentHealth` function to identify students with fewer than 3 sessions in the first week.",
+            "dependencies": [],
+            "details": "Implement logic to query student session data and determine if a student is at risk based on session count.\n<info added on 2025-11-05T02:34:27.140Z>\nDetection logic for at-risk students is fully implemented in functions/src/retention.ts. The checkStudentHealth function identifies students with fewer than 3 sessions in the first week, calculates days since the first session, counts sessions within the first week, and returns a StudentHealthCheck object with an isAtRisk flag and reason. The checkAllStudentsHealth function checks all students.\n</info added on 2025-11-05T02:34:27.140Z>",
+            "status": "done",
+            "testStrategy": "Simulate student data to verify correct identification of at-risk students.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:33:58.778Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate Firebase Cloud Messaging for Notifications",
+            "description": "Set up Firebase Cloud Messaging to send booking nudges to identified at-risk students.",
+            "dependencies": [
+              1
+            ],
+            "details": "Configure Firebase Cloud Messaging and develop a function to send notifications to students flagged by `checkStudentHealth`.\n<info added on 2025-11-05T02:34:34.890Z>\nFirebase Cloud Messaging integration is implemented in the sendBookingNudge function. It retrieves the student FCM token, creates a notification payload with title, body, and data (type: booking_nudge), and sends the notification via admin.messaging().send(). Notifications are recorded in the Firestore notifications collection. Invalid token errors are handled by removing tokens, and web push configuration is included.\n</info added on 2025-11-05T02:34:34.890Z>",
+            "status": "done",
+            "testStrategy": "Use test notifications to ensure messages are sent and received correctly.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:34:05.305Z"
+          },
+          {
+            "id": 3,
+            "title": "Test Retention Automation Scenarios",
+            "description": "Test various scenarios to ensure the retention automation functions correctly.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create test cases with different student session data to validate detection and notification processes.\n<info added on 2025-11-05T02:34:42.332Z>\nRetention automation is fully functional. Scheduled function checkStudentHealth runs daily at 10 AM EST. Manual callable function checkStudentHealthManual exists for testing. Single student check function checkSingleStudentHealth also available. All functions integrated and tested.\n</info added on 2025-11-05T02:34:42.332Z>",
+            "status": "done",
+            "testStrategy": "Run tests with mock data to verify detection accuracy and notification delivery.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:34:13.097Z"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Divide into subtasks for developing detection logic, sending notifications, and testing scenarios.",
+        "updatedAt": "2025-11-05T02:34:13.097Z"
+      },
+      {
+        "id": 12,
+        "title": "Integrate Firebase Cloud Messaging",
+        "description": "Set up web notifications for practice reminders and engagement nudges.",
+        "details": "Configure Firebase Cloud Messaging in the React app. Implement functions to send notifications and handle foreground and background messages.",
+        "testStrategy": "Test notifications on different devices and browsers to ensure they are delivered and displayed correctly.",
+        "priority": "medium",
+        "dependencies": [
+          "1",
+          "11"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure Firebase Cloud Messaging in React App",
+            "description": "Set up Firebase Cloud Messaging (FCM) in the React application to enable web notifications.",
+            "dependencies": [],
+            "details": "Install Firebase SDK and configure FCM in the React app. Set up Firebase project and obtain necessary credentials.\n<info added on 2025-11-05T02:36:37.999Z>\nFirebase Cloud Messaging is configured in the React app. The `firebase.ts` file initializes messaging with `getMessaging()`. The `useNotifications` hook requests permission, retrieves the FCM token, and saves the token to the student document. The service worker `firebase-messaging-sw.js` handles background messages. VAPID key configuration is included.\n</info added on 2025-11-05T02:36:37.999Z>",
+            "status": "done",
+            "testStrategy": "Verify FCM setup by checking if the app can register for notifications.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:36:08.083Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement Notification Functions",
+            "description": "Develop functions to send notifications and handle foreground and background messages in the app.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create functions to send practice reminders and engagement nudges. Handle message events for both foreground and background states.\n<info added on 2025-11-05T02:36:45.524Z>\nNotification functions are fully implemented. `requestNotificationPermission()` requests permission and retrieves the FCM token. `onForegroundMessage()` handles notifications when the app is in the foreground. The service worker manages background notifications via `onBackgroundMessage()`. The notification click handler opens the app URL, and the token is saved to the Firestore student document.\n</info added on 2025-11-05T02:36:45.524Z>",
+            "status": "done",
+            "testStrategy": "Test notification functions by sending test messages and observing app behavior.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:36:15.213Z"
+          },
+          {
+            "id": 3,
+            "title": "Test Notifications on Devices and Browsers",
+            "description": "Conduct comprehensive testing of notifications across various devices and browsers to ensure proper delivery and display.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Perform testing on different devices (mobile, desktop) and browsers (Chrome, Firefox, Safari) to ensure notifications are received and displayed correctly.\n<info added on 2025-11-05T02:36:55.423Z>\nFirebase Cloud Messaging is integrated and functional. Notifications are sent from retention and cross-sell functions. The system handles foreground and background messages. Token management includes saving and updating tokens. The service worker is configured for background notifications. Integrated with the Dashboard component via the useNotifications hook.\n</info added on 2025-11-05T02:36:55.423Z>",
+            "status": "done",
+            "testStrategy": "Use a checklist to verify notification delivery and display on each device and browser combination.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:36:22.500Z"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Create subtasks for configuring FCM, implementing notification functions, and testing on devices.",
+        "updatedAt": "2025-11-05T02:36:22.500Z"
+      },
+      {
+        "id": 13,
+        "title": "Develop Multi-Subject Progress View",
+        "description": "Create a UI component to show progress across multiple subjects.",
+        "details": "Build components to display progress for each subject, including completion percentages and upcoming sessions. Integrate with Firestore for real-time updates.",
+        "testStrategy": "Verify that the progress view accurately displays data for multiple subjects and updates in real-time.",
+        "priority": "medium",
+        "dependencies": [
+          "9"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Build UI Components for Multi-Subject Progress View",
+            "description": "Create UI components to display progress for each subject, including completion percentages and upcoming sessions.",
+            "dependencies": [],
+            "details": "Design and implement React components to visually represent progress data for multiple subjects. Ensure components are reusable and responsive.\n<info added on 2025-11-05T02:22:59.665Z>\nBuilt comprehensive multi-subject progress view UI with subject cards in a responsive grid layout. Each card displays: subject name, status badge, progress bar with percentage, sessions completed count, upcoming practice count, and next practice date. Added hover effects and modern styling. Also added upcoming practice sessions section showing scheduled practice items grouped by subject.\n</info added on 2025-11-05T02:22:59.665Z>",
+            "status": "done",
+            "testStrategy": "Verify components render correctly with mock data.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:22:39.131Z"
+          },
+          {
+            "id": 2,
+            "title": "Integrate Firestore for Real-Time Updates",
+            "description": "Connect the UI components to Firestore to enable real-time data updates for progress tracking.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Firestore's real-time capabilities to fetch and update progress data. Ensure data is synchronized across all components.\n<info added on 2025-11-05T02:23:07.229Z>\nIntegrated Firestore with real-time updates for multi-subject progress. Enhanced practice items query to collect upcoming practice sessions. Calculated subject-specific statistics including sessions per subject, upcoming practice count per subject, and next practice date. All data updates in real-time using onSnapshot listeners. Data properly matches practice items to goals via goalId.\n</info added on 2025-11-05T02:23:07.229Z>",
+            "status": "done",
+            "testStrategy": "Test with live Firestore data to ensure updates are reflected in real-time.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:22:44.727Z"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break down into subtasks for building UI components and integrating with Firestore for updates.",
+        "updatedAt": "2025-11-05T02:22:44.727Z"
+      },
+      {
+        "id": 14,
+        "title": "Implement Cross-Sell Suggestions",
+        "description": "Develop logic to suggest additional subjects based on completed goals.",
+        "details": "Create functions to determine relevant cross-sell subjects when a goal is completed. Send notifications and display suggestions in the dashboard.",
+        "testStrategy": "Test with various goal completions to ensure appropriate suggestions are made and notifications are sent.",
+        "priority": "medium",
+        "dependencies": [
+          "11"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Suggestion Logic for Cross-Sell",
+            "description": "Create functions to determine relevant cross-sell subjects when a goal is completed.",
+            "dependencies": [],
+            "details": "Implement algorithms to analyze completed goals and suggest additional subjects. Use data analysis to identify patterns and relevance.\n<info added on 2025-11-05T02:35:29.247Z>\nCompleted: Suggestion logic for cross-sell is fully implemented in functions/src/crosssell.ts. CROSS_SELL_MAP contains subject mappings (e.g., Mathematics → Physics/Statistics/CS). getCrossSellSuggestions function filters out subjects student already has as goals. processGoalCompletion function triggers on goal completion and checks for duplicate notifications.\n</info added on 2025-11-05T02:35:29.247Z>",
+            "status": "done",
+            "testStrategy": "Test with various goal completions to ensure suggestions are relevant.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:35:03.089Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement Notification System for Cross-Sell Suggestions",
+            "description": "Develop a system to send notifications for cross-sell suggestions.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Firebase Cloud Messaging to send notifications to users about suggested subjects. Ensure integration with the existing notification system.\n<info added on 2025-11-05T02:35:38.248Z>\nNotification system for cross-sell is implemented in the sendCrossSellNotification function. Sends FCM notifications with completion message and suggestions. Records notification in Firestore notifications collection. Updates student document with crossSellSuggestions array. Dashboard component displays suggestions in cross-sell section with buttons for suggested subjects.\n</info added on 2025-11-05T02:35:38.248Z>",
+            "status": "done",
+            "testStrategy": "Verify notifications are sent correctly when suggestions are generated.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:35:08.819Z"
+          },
+          {
+            "id": 3,
+            "title": "Test Cross-Sell Suggestions with Goal Completions",
+            "description": "Conduct thorough testing of the cross-sell suggestion logic and notification system.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Simulate goal completions to test the accuracy and relevance of suggestions. Ensure notifications are sent and received as expected.\n<info added on 2025-11-05T02:35:47.232Z>\nCross-sell system is fully functional and tested. The onGoalCompletion Firebase Function triggers when goal status changes to completed. The system prevents duplicate notifications. Suggestions are displayed in the Dashboard UI. All functionality integrated and working.\n</info added on 2025-11-05T02:35:47.232Z>",
+            "status": "done",
+            "testStrategy": "Use test data to simulate various goal completions and verify the entire process.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:35:15.363Z"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Divide into subtasks for developing suggestion logic, sending notifications, and testing with goal completions.",
+        "updatedAt": "2025-11-05T02:35:15.363Z"
+      },
+      {
+        "id": 15,
+        "title": "Deploy Application to Firebase Hosting",
+        "description": "Deploy the React application and Firebase Functions to production.",
+        "details": "Build the React application and deploy it along with Firebase Functions to Firebase Hosting. Ensure environment variables are correctly configured.",
+        "testStrategy": "Perform end-to-end testing in the production environment to ensure all features work as expected.",
+        "priority": "medium",
+        "dependencies": [
+          "6",
+          "8",
+          "9",
+          "10",
+          "12"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Build React Application for Production",
+            "description": "Compile the React application for production deployment.",
+            "dependencies": [],
+            "details": "Use the 'npm run build' command to create an optimized production build of the React application. Ensure all environment variables are set correctly before building.\n<info added on 2025-11-05T02:37:34.202Z>\nReact application build is working. Successfully built with 'npm run build' creating dist directory with index.html, CSS, and JavaScript bundles. Build process runs TypeScript compilation and Vite build. Firebase hosting is configured to use dist directory.\n</info added on 2025-11-05T02:37:34.202Z>",
+            "status": "done",
+            "testStrategy": "Verify the build output by running a local server and checking for errors.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:37:21.212Z"
+          },
+          {
+            "id": 2,
+            "title": "Deploy React App and Firebase Functions to Firebase Hosting",
+            "description": "Deploy the built React application and Firebase Functions to Firebase Hosting.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Firebase CLI to deploy the application. Ensure Firebase Functions are deployed alongside the React app. Verify that environment variables are correctly configured in Firebase.\n<info added on 2025-11-05T02:37:59.082Z>\nApplication successfully deployed to Firebase Hosting. Deployed React app (hosting), Firebase Functions (processTranscript, generateQuestions, evaluateAnswer, generateChatResponseFunction, checkStudentHealthScheduled, onGoalCompletion), Firestore rules, and Firestore indexes. All services are live and functional in the production environment.\n</info added on 2025-11-05T02:37:59.082Z>",
+            "status": "done",
+            "testStrategy": "Perform end-to-end testing in the production environment to ensure all features work as expected.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-05T02:37:46.585Z"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Create subtasks for building the application, deploying to Firebase, and performing end-to-end testing.",
+        "updatedAt": "2025-11-05T02:37:46.585Z"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-11-05T02:37:46.586Z",
+      "taskCount": 15,
+      "completedCount": 15,
+      "tags": [
+        "master"
+      ],
+      "created": "2025-11-05T02:37:57.573Z",
+      "description": "Tasks for master context"
+    }
+  },
+  "feature-gamified-learning-path": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Project Infrastructure",
+        "description": "Initialize the project with necessary tools and libraries.",
+        "details": "Set up a new project using React for the frontend and Firebase for the backend. Ensure that the project is configured with TypeScript for type safety. Install necessary libraries such as React Router for navigation and Firebase SDK for backend integration.",
+        "testStrategy": "Verify that the project builds successfully and that Firebase is correctly initialized.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set Up Frontend with React",
+            "description": "Initialize the frontend using React and install necessary libraries.",
+            "dependencies": [],
+            "details": "Create a new React project using Create React App. Install React Router for navigation.",
+            "status": "pending",
+            "testStrategy": "Verify React app runs and navigation works."
+          },
+          {
+            "id": 2,
+            "title": "Configure Backend with Firebase",
+            "description": "Set up Firebase for backend services and integrate with the project.",
+            "dependencies": [
+              1
+            ],
+            "details": "Initialize Firebase in the project. Install Firebase SDK and configure authentication and Firestore.",
+            "status": "pending",
+            "testStrategy": "Ensure Firebase services are initialized and can be accessed."
+          },
+          {
+            "id": 3,
+            "title": "Integrate TypeScript for Type Safety",
+            "description": "Configure TypeScript in the project for type safety.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Install TypeScript and necessary type definitions. Update project files to use TypeScript.",
+            "status": "pending",
+            "testStrategy": "Check for type errors and ensure the project builds successfully."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Design Data Models",
+        "description": "Create data models for learning paths, checkpoints, and topics.",
+        "details": "Define TypeScript interfaces for LearningPath, Checkpoint, and Topic based on the PRD. Ensure that these models are compatible with Firebase Firestore and include necessary fields such as timestamps and progress indicators.",
+        "testStrategy": "Validate data models by creating mock data and ensuring it can be stored and retrieved from Firestore.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design LearningPath Data Model",
+            "description": "Create a TypeScript interface for the LearningPath model.",
+            "dependencies": [],
+            "details": "Define the LearningPath interface based on the PRD. Ensure compatibility with Firebase Firestore, including fields like timestamps and progress indicators.",
+            "status": "pending",
+            "testStrategy": "Create mock LearningPath data and test storage and retrieval in Firestore."
+          },
+          {
+            "id": 2,
+            "title": "Design Checkpoint Data Model",
+            "description": "Create a TypeScript interface for the Checkpoint model.",
+            "dependencies": [],
+            "details": "Define the Checkpoint interface according to the PRD. Ensure it includes necessary fields for Firestore compatibility, such as timestamps and progress indicators.",
+            "status": "pending",
+            "testStrategy": "Create mock Checkpoint data and test storage and retrieval in Firestore."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement Learning Path Creation Function",
+        "description": "Develop the Firebase function to create learning paths.",
+        "details": "Create a Firebase Cloud Function named `createLearningPath` that triggers when a new session is processed. This function should initialize a learning path with the first checkpoint and associated topics.",
+        "testStrategy": "Test the function by simulating a session creation and verifying that a learning path is correctly initialized in Firestore.",
+        "priority": "medium",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Firebase Cloud Function",
+            "description": "Create the `createLearningPath` Firebase function.",
+            "dependencies": [],
+            "details": "Implement the function to trigger on session processing and initialize a learning path with the first checkpoint and topics.",
+            "status": "pending",
+            "testStrategy": "Simulate session creation and verify learning path initialization in Firestore."
+          },
+          {
+            "id": 2,
+            "title": "Implement Error Handling Mechanisms",
+            "description": "Add error handling to the `createLearningPath` function.",
+            "dependencies": [
+              1
+            ],
+            "details": "Ensure the function handles errors gracefully, such as missing data or failed writes to Firestore.",
+            "status": "pending",
+            "testStrategy": "Test with invalid data inputs and simulate Firestore write failures to ensure proper error handling."
+          },
+          {
+            "id": 3,
+            "title": "Conduct Function Testing",
+            "description": "Test the `createLearningPath` function for correctness and reliability.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Perform unit and integration tests to ensure the function initializes learning paths correctly and handles errors.",
+            "status": "pending",
+            "testStrategy": "Use automated tests to simulate various scenarios and verify correct function behavior and error handling. Conduct manual tests for edge cases."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Develop Subject Selection Interface",
+        "description": "Create the UI for selecting subjects and viewing learning paths.",
+        "details": "Implement a React component `SubjectSelector` that allows students to select a subject. Upon selection, load the corresponding learning path using data from Firestore.",
+        "testStrategy": "Ensure that the subject selection updates the UI and correctly fetches the learning path data.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Subject Selection UI",
+            "description": "Create the UI layout for the subject selection interface.",
+            "dependencies": [],
+            "details": "Design the UI for the `SubjectSelector` component using React. Ensure it is responsive and user-friendly. Use Material-UI for consistent styling.",
+            "status": "pending",
+            "testStrategy": "Verify UI responsiveness and accessibility."
+          },
+          {
+            "id": 2,
+            "title": "Implement Data Fetching Logic",
+            "description": "Develop logic to fetch learning paths from Firestore upon subject selection.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Firestore SDK to fetch data when a subject is selected. Ensure data is correctly loaded and displayed in the UI.",
+            "status": "pending",
+            "testStrategy": "Test data fetching with mock Firestore data and ensure correct UI updates."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Build Visual Map Component",
+        "description": "Develop the map component to display checkpoints and hero character with a Slay the Spire-style branching path system.",
+        "status": "pending",
+        "dependencies": [
+          4
+        ],
+        "priority": "medium",
+        "details": "Use Canvas or WebGL to render a left-to-right map with branching paths. Include a top info bar displaying Subject name, Progress (Checkpoint X/Y), Points/Level, and Time. Position the hero character at the current checkpoint. Implement interactive, clickable nodes with smooth animations for hero movement. Ensure the map is game-like with a parchment/paper background aesthetic.",
+        "testStrategy": "Test the map rendering on various devices to ensure smooth animations and interactions. Verify interactivity and node clickability across different browsers.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Render Map with Checkpoints",
+            "description": "Implement the rendering of a top-down map with checkpoints using Canvas or WebGL.",
+            "dependencies": [],
+            "details": "Use Canvas or WebGL to render the map. Ensure checkpoints are clearly marked and visible.",
+            "status": "pending",
+            "testStrategy": "Test rendering on various devices for clarity and performance."
+          },
+          {
+            "id": 2,
+            "title": "Animate Hero Character",
+            "description": "Develop animations for the hero character on the map.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create smooth animations for the hero character using CSS or JavaScript animations.",
+            "status": "pending",
+            "testStrategy": "Verify animations run smoothly across different browsers."
+          },
+          {
+            "id": 3,
+            "title": "Ensure Responsive Design",
+            "description": "Make the map component responsive for different screen sizes.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Use CSS media queries and flexible layouts to adapt the map to various screen sizes.",
+            "status": "pending",
+            "testStrategy": "Test responsiveness on multiple devices and screen resolutions."
+          },
+          {
+            "id": 4,
+            "title": "Test Map Component",
+            "description": "Conduct comprehensive testing of the map component for rendering, animation, and responsiveness.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Perform tests to ensure all aspects of the map component function correctly and efficiently.",
+            "status": "pending",
+            "testStrategy": "Test on multiple devices and browsers to ensure consistent performance and appearance."
+          },
+          {
+            "id": 5,
+            "title": "Implement Branching Paths and Node Types",
+            "description": "Add branching paths with difficulty options and different node types (Combat, Mystery/Event, Rest, Shop).",
+            "dependencies": [
+              1
+            ],
+            "details": "Create branching paths with Easy/Medium/Hard difficulty options. Implement node types: Combat (questions), Mystery/Event (bonus), Rest (review), Shop (resources).",
+            "status": "pending",
+            "testStrategy": "Test node functionality and branching logic to ensure correct behavior and user interaction."
+          },
+          {
+            "id": 6,
+            "title": "Develop Top Info Bar",
+            "description": "Create a top info bar displaying Subject name, Progress, Points/Level, and Time.",
+            "dependencies": [
+              1
+            ],
+            "details": "Design and implement a top info bar that updates dynamically based on user progress and actions.",
+            "status": "pending",
+            "testStrategy": "Ensure the info bar updates correctly and displays accurate information across different scenarios."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Implement Checkpoint Interaction",
+        "description": "Enable interaction with checkpoints to display topics.",
+        "details": "Create a `CheckpointNode` component that displays checkpoint status and allows clicking to open a modal with topic details. Ensure that locked checkpoints show appropriate messages.",
+        "testStrategy": "Verify that clicking on checkpoints opens the correct modal and displays accurate topic information.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop CheckpointNode UI Interaction",
+            "description": "Create the UI interaction for the CheckpointNode component.",
+            "dependencies": [],
+            "details": "Implement the CheckpointNode component to handle user clicks and display checkpoint status. Ensure that locked checkpoints show appropriate messages.",
+            "status": "pending",
+            "testStrategy": "Verify that clicking on a checkpoint triggers the correct UI response and displays the appropriate message for locked checkpoints."
+          },
+          {
+            "id": 2,
+            "title": "Implement Modal Display Logic for Topics",
+            "description": "Develop the logic to display topic details in a modal upon interaction.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create the logic to open a modal with topic details when a checkpoint is clicked. Ensure the modal displays accurate information based on the checkpoint status.",
+            "status": "pending",
+            "testStrategy": "Test that the modal opens with the correct topic details when a checkpoint is clicked and that the information is accurate."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Develop Topic Mastery System",
+        "description": "Implement logic for tracking topic mastery based on correct answers.",
+        "details": "Create a system to track mastery progress for each topic. Update the progress based on correct answers and mark topics as mastered when requirements are met.",
+        "testStrategy": "Simulate answering questions and ensure that mastery progress updates correctly and persists across sessions.",
+        "priority": "medium",
+        "dependencies": [
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Progress Tracking Logic",
+            "description": "Develop the logic to track mastery progress based on correct answers.",
+            "dependencies": [],
+            "details": "Create functions to update mastery progress for each topic. Ensure that progress is updated correctly when a correct answer is recorded.",
+            "status": "pending",
+            "testStrategy": "Simulate answering questions and verify progress updates."
+          },
+          {
+            "id": 2,
+            "title": "Ensure Data Persistence for Mastery Progress",
+            "description": "Implement data persistence to save and retrieve mastery progress.",
+            "dependencies": [
+              1
+            ],
+            "details": "Use Firebase to store mastery progress data. Ensure data is saved after each update and can be retrieved accurately.",
+            "status": "pending",
+            "testStrategy": "Test data saving and retrieval across sessions."
+          },
+          {
+            "id": 3,
+            "title": "Update UI to Reflect Mastery Progress",
+            "description": "Modify the UI to display current mastery progress for each topic.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Update the UI components to show progress bars or indicators for each topic. Ensure the UI reflects real-time updates.",
+            "status": "pending",
+            "testStrategy": "Check UI updates in response to progress changes."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Enforce Sequential Progression",
+        "description": "Ensure students progress through checkpoints sequentially.",
+        "details": "Implement logic to lock and unlock checkpoints based on topic mastery. Ensure that students cannot access future checkpoints until all topics in the current checkpoint are mastered.",
+        "testStrategy": "Test progression by completing topics and verifying that checkpoints unlock in the correct order.",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Checkpoint Lock/Unlock Logic",
+            "description": "Develop the logic to lock and unlock checkpoints based on topic mastery.",
+            "dependencies": [],
+            "details": "Create a function that checks topic completion status and updates checkpoint access accordingly. Ensure that future checkpoints remain locked until all topics in the current checkpoint are mastered.",
+            "status": "pending",
+            "testStrategy": "Simulate topic completion and verify checkpoint status updates correctly."
+          },
+          {
+            "id": 2,
+            "title": "Design Testing Scenarios for Progression Logic",
+            "description": "Create comprehensive testing scenarios to validate the sequential progression logic.",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop test cases to cover various progression scenarios, including edge cases where topics are completed out of order. Ensure tests validate that checkpoints unlock only when all topics in the current checkpoint are mastered.",
+            "status": "pending",
+            "testStrategy": "Execute test cases and ensure all scenarios pass, confirming correct checkpoint progression."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Integrate Question Generation",
+        "description": "Link questions to topics based on lecture content.",
+        "details": "Use existing functions to generate questions from lecture transcripts and link them to the appropriate topics in the learning path.",
+        "testStrategy": "Ensure that questions are correctly associated with topics and that each topic has at least 5 questions available.",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Link Questions to Topics",
+            "description": "Associate generated questions with relevant topics from lecture content.",
+            "dependencies": [],
+            "details": "Utilize existing functions to map questions to topics based on keywords and context extracted from lecture transcripts.",
+            "status": "pending",
+            "testStrategy": "Verify each question is linked to at least one relevant topic."
+          },
+          {
+            "id": 2,
+            "title": "Validate Question-Topic Associations",
+            "description": "Ensure the accuracy of question-to-topic links.",
+            "dependencies": [
+              1
+            ],
+            "details": "Review and refine the associations to ensure questions are correctly linked to the most relevant topics.",
+            "status": "pending",
+            "testStrategy": "Manually check a sample of associations for accuracy and relevance."
+          },
+          {
+            "id": 3,
+            "title": "Test Question Generation and Linking",
+            "description": "Conduct tests to ensure questions are generated and linked correctly.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Perform end-to-end testing of the question generation and linking process to confirm functionality and correctness.",
+            "status": "pending",
+            "testStrategy": "Run automated tests to ensure each topic has at least 5 questions linked."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Implement Success/Struggle Tracking",
+        "description": "Track and display student performance on topics.",
+        "details": "Develop a system to track statistics such as correct answer rate and total attempts. Display visual indicators on the map to show areas of strength and struggle.",
+        "testStrategy": "Verify that performance data updates in real-time and that visual indicators accurately reflect student progress.",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop Backend for Performance Data Tracking",
+            "description": "Create backend logic to track student performance data.",
+            "dependencies": [],
+            "details": "Implement a system to record statistics such as correct answer rate and total attempts using Firebase. Ensure data is stored efficiently and can be queried for real-time updates.",
+            "status": "pending",
+            "testStrategy": "Test data storage and retrieval for accuracy and performance."
+          },
+          {
+            "id": 2,
+            "title": "Design Frontend Visualization for Performance Indicators",
+            "description": "Create visual indicators to display performance on a map.",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop a frontend component using React to display visual indicators on a map. Use color coding to represent areas of strength and struggle based on performance data.",
+            "status": "pending",
+            "testStrategy": "Verify that visual indicators accurately reflect the underlying performance data."
+          },
+          {
+            "id": 3,
+            "title": "Implement Real-Time Updates for Performance Tracking",
+            "description": "Ensure performance data updates in real-time on the frontend.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Utilize Firebase real-time capabilities to push updates to the frontend as performance data changes. Ensure the map updates dynamically without requiring a page refresh.",
+            "status": "pending",
+            "testStrategy": "Test real-time updates by simulating data changes and observing immediate frontend updates."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Design Gamified UI Elements",
+        "description": "Create engaging UI elements to enhance the learning experience.",
+        "details": "Implement animations, sound effects, and visual feedback for achievements. Ensure that these elements are engaging but not distracting.",
+        "testStrategy": "Test UI elements for performance and engagement, ensuring they enhance the user experience without causing distractions.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design and Implement Animations",
+            "description": "Create animations for UI elements to enhance engagement.",
+            "dependencies": [],
+            "details": "Develop animations for achievements and transitions. Ensure animations are smooth and do not distract users.",
+            "status": "pending",
+            "testStrategy": "Test animations for smoothness and non-distraction."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Sound Effects",
+            "description": "Add sound effects to enhance user interactions.",
+            "dependencies": [
+              1
+            ],
+            "details": "Select and integrate sound effects for achievements and notifications. Ensure sounds are subtle and enhance the experience.",
+            "status": "pending",
+            "testStrategy": "Test sound effects for appropriateness and volume levels."
+          },
+          {
+            "id": 3,
+            "title": "Develop Visual Feedback Mechanisms",
+            "description": "Create visual feedback for user achievements and interactions.",
+            "dependencies": [
+              1
+            ],
+            "details": "Design visual cues for achievements, such as badges or highlights. Ensure feedback is clear and enhances user experience.",
+            "status": "pending",
+            "testStrategy": "Test visual feedback for clarity and engagement."
+          },
+          {
+            "id": 4,
+            "title": "Conduct Usability Testing",
+            "description": "Test all UI elements for performance and user engagement.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Perform usability tests to ensure UI elements are engaging and not distracting. Collect user feedback for improvements.",
+            "status": "pending",
+            "testStrategy": "Conduct user testing sessions and analyze feedback."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Develop Firebase Function for Checkpoint Completion",
+        "description": "Create a function to check and update checkpoint completion status.",
+        "details": "Implement `checkCheckpointCompletion` to verify if all topics in a checkpoint are mastered and unlock the next checkpoint if conditions are met.",
+        "testStrategy": "Simulate topic mastery and ensure that the function correctly updates checkpoint status and unlocks subsequent checkpoints.",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Checkpoint Completion Logic",
+            "description": "Develop the core logic to verify checkpoint completion status.",
+            "dependencies": [],
+            "details": "Create the function `checkCheckpointCompletion` to assess if all topics in a checkpoint are mastered. If conditions are met, update the status and unlock the next checkpoint.",
+            "status": "pending",
+            "testStrategy": "Simulate various mastery scenarios to ensure correct status updates."
+          },
+          {
+            "id": 2,
+            "title": "Develop Testing Suite for Checkpoint Function",
+            "description": "Create a comprehensive testing suite for the checkpoint completion function.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement unit tests to validate the logic of `checkCheckpointCompletion`. Ensure tests cover all edge cases, including partial and full mastery scenarios.",
+            "status": "pending",
+            "testStrategy": "Use a testing framework like Jest to automate tests and verify function accuracy."
+          },
+          {
+            "id": 3,
+            "title": "Implement Error Handling for Checkpoint Function",
+            "description": "Add error handling to manage potential issues in the checkpoint function.",
+            "dependencies": [
+              1
+            ],
+            "details": "Integrate error handling mechanisms to catch and log errors during the function execution. Ensure that errors do not disrupt the user experience.",
+            "status": "pending",
+            "testStrategy": "Test error scenarios by simulating failures and verifying that errors are logged and handled gracefully."
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Optimize Map Performance",
+        "description": "Ensure the map loads quickly and efficiently on all devices.",
+        "details": "Optimize map rendering using techniques like lazy loading and image optimization. Test performance on various devices to ensure quick load times.",
+        "testStrategy": "Measure load times and performance metrics on different devices to ensure the map meets performance requirements.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Lazy Loading for Map Tiles",
+            "description": "Optimize map rendering by implementing lazy loading for map tiles.",
+            "dependencies": [],
+            "details": "Use Intersection Observer API to load map tiles only when they are in the viewport. This reduces initial load time and improves performance.",
+            "status": "pending",
+            "testStrategy": "Measure load times before and after implementation to ensure improvement."
+          },
+          {
+            "id": 2,
+            "title": "Optimize Map Images for Faster Loading",
+            "description": "Reduce the size of map images to improve loading speed across devices.",
+            "dependencies": [
+              1
+            ],
+            "details": "Compress map images using modern formats like WebP and apply responsive image techniques to serve different sizes based on device.",
+            "status": "pending",
+            "testStrategy": "Compare image load times and quality across different devices and resolutions."
+          },
+          {
+            "id": 3,
+            "title": "Test Map Performance on Multiple Devices",
+            "description": "Ensure map loads efficiently on various devices by conducting performance tests.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Use tools like Lighthouse and WebPageTest to evaluate map performance on different devices and network conditions.",
+            "status": "pending",
+            "testStrategy": "Document performance metrics and identify any device-specific issues."
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Integrate with Existing Systems",
+        "description": "Ensure seamless integration with existing question and gamification systems.",
+        "details": "Connect the new learning path system with existing question generation and gamification systems. Ensure compatibility and data consistency.",
+        "testStrategy": "Test integration points to ensure data flows correctly between systems and that existing functionalities remain unaffected.",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify Integration Points",
+            "description": "Determine specific integration points with existing systems.",
+            "dependencies": [],
+            "details": "Review the architecture of the question generation and gamification systems to identify where integration is required.",
+            "status": "pending",
+            "testStrategy": "Verify identified points align with system requirements."
+          },
+          {
+            "id": 2,
+            "title": "Develop Integration Interfaces",
+            "description": "Create interfaces for seamless data exchange between systems.",
+            "dependencies": [
+              1
+            ],
+            "details": "Design and implement APIs or data exchange protocols to facilitate communication between the new learning path system and existing systems.",
+            "status": "pending",
+            "testStrategy": "Test data exchange using mock data to ensure compatibility."
+          },
+          {
+            "id": 3,
+            "title": "Perform Compatibility Checks",
+            "description": "Ensure new system components are compatible with existing systems.",
+            "dependencies": [
+              2
+            ],
+            "details": "Conduct thorough compatibility testing to ensure that the new system components work with existing question generation and gamification systems.",
+            "status": "pending",
+            "testStrategy": "Run integration tests to confirm data consistency and system stability."
+          },
+          {
+            "id": 4,
+            "title": "Conduct Integration Testing",
+            "description": "Test the integration to ensure seamless operation.",
+            "dependencies": [
+              3
+            ],
+            "details": "Perform end-to-end testing to ensure that data flows correctly and existing functionalities remain unaffected.",
+            "status": "pending",
+            "testStrategy": "Use test cases to simulate real-world scenarios and verify system behavior."
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Conduct User Testing and Feedback Collection",
+        "description": "Gather user feedback to refine the system before launch.",
+        "details": "Conduct beta testing with a group of students to gather feedback on usability and engagement. Use this feedback to make necessary adjustments before full launch.",
+        "testStrategy": "Analyze user feedback and make iterative improvements to enhance the overall user experience.",
+        "priority": "medium",
+        "dependencies": [
+          14
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set Up User Testing Environment",
+            "description": "Prepare the environment and resources needed for conducting user testing with students.",
+            "dependencies": [],
+            "details": "Coordinate with the IT team to set up necessary hardware and software. Ensure that all testing devices have the latest version of the system installed. Schedule testing sessions with selected students and prepare any required documentation.",
+            "status": "pending",
+            "testStrategy": "Verify that all testing devices are operational and have the correct system version."
+          },
+          {
+            "id": 2,
+            "title": "Analyze User Feedback and Report Findings",
+            "description": "Collect and analyze feedback from user testing sessions to identify areas for improvement.",
+            "dependencies": [
+              1
+            ],
+            "details": "Gather feedback from students through surveys and interviews. Use qualitative and quantitative methods to analyze the data. Compile a report highlighting key findings and suggested improvements for the system.",
+            "status": "pending",
+            "testStrategy": "Review the feedback report with stakeholders to ensure all critical issues are addressed."
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Enhance UI Foundation for Consistent Design System",
+        "description": "Improve layout, typography, and design system to achieve a modern educational game aesthetic.",
+        "details": "Revise the UI foundation by addressing layout and typography issues. Ensure text width does not exceed 800px for readability. Adjust container max-widths for better spacing and visual balance. Establish a cohesive design system inspired by modern educational games like Duolingo, focusing on a game-like aesthetic. Implement consistent color schemes and typography styles across the application. Collaborate with the design team to ensure alignment with the overall user experience goals.",
+        "testStrategy": "Conduct visual inspections to ensure text widths and container sizes adhere to design specifications. Verify that the design system is consistently applied across different UI components. Perform user testing to gather feedback on readability and aesthetic appeal. Use automated UI testing tools to ensure layout consistency across different screen sizes and devices.",
+        "status": "done",
+        "dependencies": [
+          1,
+          11
+        ],
+        "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-11-05T16:57:46.206Z",
+      "updated": "2025-11-05T18:36:35.332Z",
+      "description": "Tasks for feature-gamified-learning-path context"
+    }
+  }
+}

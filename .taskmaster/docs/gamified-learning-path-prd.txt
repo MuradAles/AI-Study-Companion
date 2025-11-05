@@ -1,0 +1,560 @@
+# Product Requirements Document: Gamified Learning Path System
+
+## Overview
+
+**Feature Name:** Gamified Learning Path System  
+**Version:** 1.0  
+**Date:** January 2025  
+**Status:** Planning Phase
+
+## Executive Summary
+
+Transform the AI Study Companion's practice system into an engaging, game-like learning experience where students progress through sequential checkpoints on a visual map. Each checkpoint contains topics from tutor lectures, and students must master topics by correctly answering questions before advancing. This creates a clear learning progression that prevents students from skipping ahead while making practice feel rewarding and achievement-oriented.
+
+## Problem Statement
+
+### Current State Issues
+- Practice questions feel disconnected from structured learning progression
+- Students can skip or avoid difficult topics without clear consequences
+- No visual representation of learning journey and progress
+- Lack of sequential learning path structure
+- Students don't understand their learning progression clearly
+
+### Target State Goals
+- Students see their learning journey as a visual, gamified adventure
+- Sequential progression ensures mastery before advancing
+- Clear connection between tutor lectures and practice topics
+- Engaging UI that motivates continuous practice
+- Students understand exactly where they are and what they need to master
+
+## User Stories
+
+### Primary User: Student
+
+**As a student, I want to:**
+1. Select a subject (Algebra, SAT, ELF) and see a visual learning path
+2. See my hero character positioned at my current checkpoint
+3. Click on checkpoints to see available topics from my tutor sessions
+4. Answer questions from topics I've learned in lectures
+5. Progress through checkpoints sequentially only after mastering topics
+6. See my progress visually with clear indicators of completion
+7. Understand which topics I'm struggling with vs. excelling at
+8. Feel motivated to continue through gamified visual feedback
+
+## Core Features
+
+### 1. Subject Selection & Learning Path Creation
+
+**Description:** Students select a subject and view/create a learning path for that subject.
+
+**Requirements:**
+- Subject selection interface (Algebra, SAT, ELF)
+- Each subject has its own independent learning path
+- Learning path automatically created when first session for that subject is processed
+- Path structure based on session order and topics covered
+
+**User Flow:**
+1. Student navigates to Learning Path view
+2. Sees list of available subjects
+3. Clicks on subject (e.g., "Algebra")
+4. Learning path loads showing checkpoints
+
+**Acceptance Criteria:**
+- Students can switch between subjects
+- Each subject maintains independent progress
+- Path updates automatically when new sessions are processed
+- Empty state shown if no sessions exist for subject
+
+### 2. Visual Map with Checkpoints
+
+**Description:** Interactive map showing sequential checkpoints representing learning milestones.
+
+**Requirements:**
+- Top-down or side-scrolling map view
+- Checkpoints displayed as distinct nodes/landmarks
+- Visual path connecting checkpoints
+- Hero character positioned at current checkpoint
+- Checkpoints show:
+  - Order number (1, 2, 3...)
+  - Status (locked/unlocked/completed)
+  - Visual indicators for completion
+  - Number of topics/questions remaining
+
+**Visual Design:**
+- Engaging, colorful map design
+- Clear visual hierarchy
+- Hero character sprite/avatar at current position
+- Smooth animations for progression
+- Responsive design for mobile and desktop
+
+**Acceptance Criteria:**
+- Map loads with correct checkpoint states
+- Hero position updates in real-time
+- Checkpoints visually distinct (locked = grayed, unlocked = highlighted, completed = checkmark)
+- Smooth transitions when advancing
+
+### 3. Checkpoint Interaction & Topic Display
+
+**Description:** Clicking a checkpoint shows topics from tutor sessions that need to be mastered.
+
+**Requirements:**
+- Click on unlocked checkpoint opens modal/popup
+- Displays list of topics from tutor lectures
+- Each topic shows:
+  - Topic name
+  - Source session (tutor name, date)
+  - Mastery progress (e.g., "3/5 correct")
+  - Status (not started, in progress, mastered)
+- Topics grouped by checkpoint in chronological order
+
+**User Flow:**
+1. Student clicks checkpoint
+2. Modal opens showing topics
+3. Student sees which topics need attention
+4. Student clicks topic to start practicing
+
+**Acceptance Criteria:**
+- Clicking locked checkpoint shows "Complete previous checkpoint" message
+- Completed checkpoints show mastery summary
+- Topics clearly labeled with source session
+- Progress indicators accurate and real-time
+
+### 4. Topic Mastery System
+
+**Description:** Students must correctly answer 5 questions per topic to master it before advancing.
+
+**Requirements:**
+- Each topic requires 5 correct answers to master
+- Incorrect answers don't count toward mastery (but provide learning feedback)
+- Mastery progress tracked per topic independently
+- Topics can be practiced multiple times until mastered
+- Mastered topics are marked as completed
+- All topics in checkpoint must be mastered before advancing
+
+**Mastery Logic:**
+- Topic starts at 0/5 correct answers
+- Each correct answer increments counter
+- Counter resets if student answers incorrectly? (No - only correct answers count)
+- Topic marked "mastered" at 5/5 correct
+- Checkpoint unlocks next checkpoint only when all topics mastered
+
+**Acceptance Criteria:**
+- Mastery counter increments only on correct answers
+- Progress persists across sessions
+- Mastered topics clearly marked
+- Cannot advance until all topics mastered
+
+### 5. Sequential Progression Enforcement
+
+**Description:** Students cannot skip ahead - must complete current checkpoint before accessing next.
+
+**Requirements:**
+- Checkpoints unlock sequentially
+- First checkpoint always unlocked (if sessions exist)
+- Next checkpoint unlocks only when:
+  - All topics in current checkpoint are mastered
+  - All questions in current checkpoint answered correctly
+- Locked checkpoints visually distinct and non-clickable
+- Clear messaging explaining why checkpoint is locked
+
+**Progression Rules:**
+- Checkpoint 1: Unlocked by default (if sessions exist)
+- Checkpoint 2: Unlocks when Checkpoint 1 complete
+- Checkpoint 3: Unlocks when Checkpoint 2 complete
+- And so on...
+
+**Acceptance Criteria:**
+- Students cannot access locked checkpoints
+- Clear visual feedback on why checkpoint is locked
+- Unlocking animation/celebration when checkpoint opens
+- Progress saved correctly
+
+### 6. Question Generation from Lectures
+
+**Description:** Questions generated from tutor lecture transcripts appear in appropriate topics.
+
+**Requirements:**
+- Questions automatically assigned to topics based on session analysis
+- Topics extracted from `aiAnalysis.topicsCovered` in session documents
+- Questions from `practice_items` linked to topics
+- Each topic must have at least 5 questions available
+- Questions difficulty matches lecture content level
+
+**Integration:**
+- Existing `processTranscript` function extracts topics
+- `generateQuestions` function creates questions for topics
+- Questions stored in `practice_items` collection
+- Topic-to-question mapping stored in learning path structure
+
+**Acceptance Criteria:**
+- Questions match topics from sessions
+- Each topic has sufficient questions (5+)
+- Questions appear in correct checkpoint
+- New sessions automatically add topics/questions
+
+### 7. Success/Struggle Tracking
+
+**Description:** Visual indicators and analytics showing where students excel and struggle.
+
+**Requirements:**
+- Per-topic statistics:
+  - Correct answer rate
+  - Total attempts
+  - Average time per question
+  - Struggling indicator (low success rate)
+- Visual indicators on map:
+  - Green checkmarks for mastered topics
+  - Yellow warning for topics in progress with low success
+  - Red indicator for topics with high failure rate
+- Dashboard summary showing:
+  - Strongest topics
+  - Topics needing more practice
+  - Overall mastery percentage
+
+**Visual Indicators:**
+- Topic cards show color-coded status
+- Map checkpoints show overall health (green/yellow/red)
+- Progress bars show mastery percentage
+- Tooltips show detailed stats
+
+**Acceptance Criteria:**
+- Statistics update in real-time
+- Visual indicators accurate and clear
+- Students can see their progress clearly
+- Data helps identify learning gaps
+
+### 8. Gamified UI Elements
+
+**Description:** Engaging visual elements that make learning feel like a game.
+
+**Requirements:**
+- Hero character customization (optional future feature)
+- Celebration animations when:
+  - Topic mastered
+  - Checkpoint completed
+  - Checkpoint unlocked
+- Progress bars and visual feedback
+- Sound effects (optional, with toggle)
+- Achievement badges for milestones
+- Visual rewards for completing checkpoints
+
+**UI Elements:**
+- Animated hero movement between checkpoints
+- Particle effects for achievements
+- Smooth transitions and animations
+- Colorful, engaging color scheme
+- Clear visual hierarchy
+- Responsive touch interactions
+
+**Acceptance Criteria:**
+- Animations smooth and performant
+- Celebrations feel rewarding
+- UI doesn't distract from learning
+- Mobile-friendly interactions
+
+## Technical Requirements
+
+### Data Models
+
+#### Learning Path Structure
+```typescript
+learningPath {
+  pathId: string;
+  studentId: string;
+  subject: string; // "Algebra", "SAT", "ELF"
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  checkpoints: Checkpoint[];
+  currentCheckpointId: string; // ID of checkpoint student is on
+  overallProgress: number; // 0-100 percentage
+}
+
+Checkpoint {
+  checkpointId: string;
+  order: number; // 1, 2, 3...
+  unlocked: boolean;
+  completed: boolean;
+  completedAt?: Timestamp;
+  topics: Topic[];
+  heroPosition: {
+    x: number;
+    y: number;
+  }
+}
+
+Topic {
+  topicId: string;
+  topicName: string;
+  sessionId: string;
+  sessionDate: Timestamp;
+  tutorName: string;
+  masteryProgress: {
+    correctAnswers: number;
+    totalAttempts: number;
+    requiredForMastery: number; // default 5
+    mastered: boolean;
+    masteredAt?: Timestamp;
+  };
+  questions: string[]; // Array of questionIds
+  status: 'not_started' | 'in_progress' | 'mastered';
+  struggleIndicator: 'strong' | 'average' | 'struggling'; // Based on success rate
+}
+```
+
+#### Updated Practice Item Structure
+```typescript
+practiceItem {
+  // ... existing fields ...
+  topicId: string; // Links to topic
+  checkpointId: string; // Links to checkpoint
+  learningPathId: string; // Links to learning path
+}
+```
+
+### Firebase Functions
+
+#### New Functions Needed
+
+1. **`createLearningPath`**
+   - Trigger: When first session processed for a subject
+   - Creates initial learning path structure
+   - Sets up first checkpoint with topics
+
+2. **`updateLearningPathFromSession`**
+   - Trigger: When session processed with topics
+   - Adds topics to appropriate checkpoint
+   - Links questions to topics
+   - Updates checkpoint structure
+
+3. **`checkCheckpointCompletion`**
+   - Trigger: When topic mastery updated
+   - Checks if all topics in checkpoint mastered
+   - Unlocks next checkpoint if complete
+   - Updates learning path progress
+
+4. **`calculateTopicMastery`**
+   - Trigger: When question answered
+   - Updates topic mastery progress
+   - Determines if topic mastered
+   - Updates struggle indicators
+
+### Frontend Components
+
+#### New Components Needed
+
+1. **`LearningPathView`**
+   - Main container for learning path feature
+   - Subject selection
+   - Map rendering
+   - Hero character display
+
+2. **`SubjectSelector`**
+   - Dropdown/list of available subjects
+   - Current subject indicator
+   - Subject switching logic
+
+3. **`MapView`**
+   - Visual map rendering
+   - Checkpoint nodes
+   - Path connections
+   - Hero character positioning
+
+4. **`CheckpointNode`**
+   - Individual checkpoint display
+   - Status indicators
+   - Click handlers
+   - Animation states
+
+5. **`CheckpointModal`**
+   - Topic list display
+   - Mastery progress
+   - Topic selection
+   - Start practice button
+
+6. **`TopicCard`**
+   - Topic information display
+   - Mastery progress bar
+   - Status indicators
+   - Action buttons
+
+7. **`HeroCharacter`**
+   - Character sprite/avatar
+   - Position animation
+   - State management
+
+### Integration Points
+
+#### Existing System Integration
+- Reuse existing `practice_items` collection
+- Integrate with existing `evaluateAnswer` function
+- Use existing gamification system (points, levels)
+- Connect to existing session processing
+- Maintain existing progress tracking
+
+#### Data Flow
+```
+Session Created
+  ↓
+processTranscript extracts topics
+  ↓
+createLearningPath or updateLearningPathFromSession
+  ↓
+generateQuestions creates questions for topics
+  ↓
+Questions linked to topics in learning path
+  ↓
+Student practices questions
+  ↓
+evaluateAnswer updates topic mastery
+  ↓
+checkCheckpointCompletion unlocks next checkpoint
+  ↓
+UI updates with new progress
+```
+
+## User Experience Flow
+
+### Complete User Journey
+
+1. **Student logs in** → Sees Dashboard
+2. **Clicks "Learning Path"** → Subject selector appears
+3. **Selects "Algebra"** → Map loads showing checkpoints
+4. **Sees hero at Checkpoint 1** → Checkpoint 1 highlighted/unlocked
+5. **Clicks Checkpoint 1** → Modal opens with topics
+6. **Sees topics from recent sessions** → Each shows mastery progress
+7. **Clicks "Practice" on topic** → Question interface opens
+8. **Answers questions** → Mastery progress updates
+9. **Completes 5 correct answers** → Topic marked mastered
+10. **All topics mastered** → Checkpoint 1 marked complete
+11. **Checkpoint 2 unlocks** → Hero moves to Checkpoint 2
+12. **Celebration animation** → Student feels achievement
+13. **Repeat process** → Continuous learning progression
+
+## Success Metrics
+
+### Engagement Metrics
+- Average checkpoints completed per student
+- Time spent in learning path view
+- Topic mastery completion rate
+- Return rate to learning path
+
+### Learning Metrics
+- Average questions per topic before mastery
+- Topic mastery success rate
+- Progression velocity (checkpoints per week)
+- Struggling topic identification accuracy
+
+### User Satisfaction
+- Feature usage rate (% of students using learning path)
+- Completion rate (students reaching checkpoint 5+)
+- User feedback on gamification elements
+- Comparison vs. old practice interface
+
+## Constraints & Considerations
+
+### Technical Constraints
+- Must integrate with existing Firebase infrastructure
+- Reuse existing question generation system
+- Maintain compatibility with current gamification
+- Performance: Map must load quickly (<2 seconds)
+- Mobile responsiveness required
+
+### Design Constraints
+- Visual design must be engaging but not distracting
+- Must work on small mobile screens
+- Accessible to students with different abilities
+- Clear visual hierarchy for learning focus
+
+### Business Constraints
+- Must maintain existing cost structure
+- No additional AI API calls required
+- Reuse existing question generation logic
+- Minimal changes to existing data models
+
+## Future Enhancements (Out of Scope for MVP)
+
+1. Hero character customization
+2. Multiple hero characters/avatars
+3. Social features (compare progress with friends)
+4. Leaderboards per subject
+5. Rewards shop (unlockable items)
+6. Adaptive difficulty based on performance
+7. Branching paths based on student choices
+8. Mini-games integrated into checkpoints
+9. Voice narration for checkpoints
+10. AR/VR map exploration
+
+## Dependencies
+
+### External Dependencies
+- Existing Firebase infrastructure
+- OpenAI API (existing integration)
+- React and React Router (existing)
+- Canvas/WebGL for map rendering (to be added)
+
+### Internal Dependencies
+- Session processing system
+- Question generation system
+- Gamification system
+- Progress tracking system
+
+## Risks & Mitigations
+
+### Risk 1: Performance Issues with Map Rendering
+**Mitigation:** Use efficient rendering techniques, lazy loading, optimize images
+
+### Risk 2: Complex State Management
+**Mitigation:** Use React Context/Redux, clear data models, thorough testing
+
+### Risk 3: Students Find Sequential Progression Frustrating
+**Mitigation:** Add clear feedback, celebration animations, progress indicators
+
+### Risk 4: Integration Complexity with Existing System
+**Mitigation:** Phased rollout, extensive testing, backward compatibility
+
+## Implementation Phases
+
+### Phase 1: Core Infrastructure (Week 1)
+- Data models and Firebase functions
+- Basic learning path creation
+- Topic mastery tracking
+
+### Phase 2: Map UI (Week 2)
+- Map component
+- Checkpoint rendering
+- Hero character
+- Basic interactions
+
+### Phase 3: Integration & Polish (Week 3)
+- Integration with existing systems
+- Animations and celebrations
+- Mobile optimization
+- Testing and bug fixes
+
+### Phase 4: Launch & Iterate (Week 4)
+- Beta testing
+- User feedback collection
+- Performance optimization
+- Feature refinements
+
+## Acceptance Criteria Summary
+
+✅ Students can select subjects and see learning paths  
+✅ Visual map displays checkpoints sequentially  
+✅ Hero character shows current position  
+✅ Checkpoints unlock only after previous completion  
+✅ Topics require 5 correct answers for mastery  
+✅ Questions linked to tutor lecture topics  
+✅ Struggling topics visually identified  
+✅ Engaging, gamified UI throughout  
+✅ Mobile-responsive design  
+✅ Real-time progress updates  
+
+## Notes
+
+- This feature enhances the existing practice system, doesn't replace it
+- Students can still access old practice interface if needed
+- Learning path becomes the primary practice interface
+- Existing gamification system (points, levels) continues to work
+- Questions generated from sessions automatically populate topics
+
