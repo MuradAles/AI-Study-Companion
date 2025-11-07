@@ -133,6 +133,17 @@ Generate 3 practice questions:`;
   // Handle both array and object formats
   const questions = Array.isArray(response) ? response : ('questions' in response ? response.questions : []);
   
+  // Log questions with correct answers for debugging
+  console.log(`📝 Generated ${questions.length} practice questions for ${sessionContext.subject}:`);
+  questions.forEach((q, idx) => {
+    console.log(`  Question ${idx + 1}: ${q.text}`);
+    console.log(`  ✅ Correct Answer: ${q.correctAnswer}`);
+    console.log(`  📊 Points Value: ${q.pointsValue}`);
+    console.log(`  🎯 Difficulty: ${q.difficulty}`);
+    console.log(`  📚 Topic: ${q.topic}`);
+    console.log('---');
+  });
+  
   // Add questionIds if not present
   return questions.map((q, idx) => ({
     ...q,
@@ -199,6 +210,13 @@ Generate 1 practice question:`;
 
   // Handle both object and direct question formats
   const question = 'question' in response ? response.question : response;
+  
+  // Log single question with correct answer for debugging
+  console.log(`📝 Generated single practice question for ${sessionContext.subject} (${difficulty}):`);
+  console.log(`  Question: ${question.text}`);
+  console.log(`  ✅ Correct Answer: ${question.correctAnswer}`);
+  console.log(`  📊 Points Value: ${question.pointsValue}`);
+  console.log(`  📚 Topic: ${question.topic}`);
   
   return {
     ...question,
@@ -556,45 +574,93 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
 }
 
 /**
- * Generate chat response with context
+ * Generate similar questions based on an example
  */
-export async function generateChatResponse(
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>,
-  studentContext: {
-    name: string;
-    goals: Array<{ subject: string; status: string }>;
-    recentSessions: Array<{ subject: string; date: string }>;
-    struggles: string[];
+export async function generateSimilarQuestionsAI(params: {
+  subject: string;
+  topics: string[];
+  difficulty: 'easy' | 'medium' | 'hard';
+  exampleQuestion: string;
+  count: number;
+}): Promise<PracticeQuestion[]> {
+  const { subject, topics, difficulty, exampleQuestion, count } = params;
+
+  const prompt = `Generate ${count} practice questions similar to the example below.
+
+Subject: ${subject}
+Topics: ${topics.join(', ')}
+Difficulty: ${difficulty}
+
+Example Question: "${exampleQuestion}"
+
+Generate ${count} NEW questions that:
+1. Cover the same subject and topics
+2. Have the same difficulty level
+3. Are DIFFERENT from the example but similar in style
+4. Are clear and well-formulated
+
+Return ONLY a valid JSON array of ${count} questions with this structure:
+[
+  {
+    "questionId": "unique-id",
+    "text": "question text",
+    "correctAnswer": "answer",
+    "difficulty": "${difficulty}",
+    "topic": "${topics[0] || subject}",
+    "hint": "helpful hint",
+    "explanation": "why this answer is correct"
   }
-): Promise<string> {
-  const systemPrompt = `You are an AI study companion for ${studentContext.name}.
+]
 
-Context:
-- Current subjects: ${studentContext.goals.map(g => g.subject).join(', ')}
-- Recent sessions: ${studentContext.recentSessions.map(s => s.subject).join(', ')}
-- Current struggles: ${studentContext.struggles.join(', ')}
-
-Guidelines:
-- Reference specific moments from past sessions when relevant
-- Be encouraging and supportive
-- If question is too complex, suggest booking a session with their tutor
-- Keep responses concise (2-3 sentences)`;
+NO additional text, ONLY the JSON array.`;
 
   const response = await callOpenAI(
     [
-      { role: 'system', content: systemPrompt },
-      ...conversationHistory.map(msg => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
+      {
+        role: 'system',
+        content: 'You are an expert educator who creates high-quality practice questions. Return only valid JSON arrays.',
+      },
+      {
+        role: 'user',
+        content: prompt,
+      },
     ],
     {
-      model: 'gpt-3.5-turbo',
-      temperature: 0.7,
-      maxTokens: 150,
+      model: 'gpt-4',
+      temperature: 0.8, // Higher for more variety
+      maxTokens: 1500,
     }
   );
 
-  return response;
+  // Parse the response
+  try {
+    // Remove markdown code blocks if present
+    let cleanedResponse = response.trim();
+    if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    }
+
+    const questions = JSON.parse(cleanedResponse);
+    
+    if (!Array.isArray(questions)) {
+      throw new Error('Response is not an array');
+    }
+
+    // Add unique IDs and validate
+    return questions.map((q, index) => ({
+      questionId: `gen-${Date.now()}-${index}`,
+      text: q.text || q.question || '',
+      correctAnswer: q.correctAnswer || q.answer || '',
+      difficulty: difficulty,
+      topic: topics[0] || subject,
+      hint: q.hint || '',
+      explanation: q.explanation || '',
+      pointsValue: difficulty === 'easy' ? 5 : difficulty === 'medium' ? 10 : 15,
+    }));
+  } catch (parseError) {
+    console.error('Error parsing similar questions response:', parseError);
+    console.error('Raw response:', response);
+    throw new Error('Failed to parse AI response for similar questions');
+  }
 }
 

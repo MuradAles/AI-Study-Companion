@@ -3,19 +3,13 @@ import * as admin from 'firebase-admin';
 import { analyzeTranscript } from './openai-handlers';
 import { generatePracticeQuestions, generateSingleQuestion } from './openai-handlers';
 import { evaluateAnswer as evaluateAnswerAI } from './openai-handlers';
-import { generateChatResponse } from './openai-handlers';
 import { calculateLevel, isDateConsecutive, checkForNewBadges } from './gamification';
 import { checkStudentHealth as checkStudentHealthHelper, sendBookingNudge, checkAllStudentsHealth } from './retention';
 import { processGoalCompletion } from './crosssell';
-import { createLearningPathFromSession, updateCheckpointCompletion } from './learning-path';
+import { createLearningPathFromSession } from './learning-path';
 
 // Initialize Firebase Admin
 admin.initializeApp();
-
-// Example function - replace with actual implementation
-export const helloWorld = functions.https.onRequest((request, response) => {
-  response.json({ message: 'Hello from Firebase Functions!' });
-});
 
 /**
  * Process transcript when a new session document is created
@@ -71,7 +65,8 @@ export const processTranscript = functions.firestore
   });
 
 /**
- * Generate practice questions when a session is updated with AI analysis
+ * Generate shared practice questions when a session is updated with AI analysis
+ * Creates questions visible to all students with attribution to the creator
  * Triggers after processTranscript completes
  */
 export const generateQuestions = functions.firestore
@@ -93,7 +88,7 @@ export const generateQuestions = functions.firestore
     }
 
     try {
-      console.log(`Generating questions for session ${sessionId}`);
+      console.log(`Generating shared questions for session ${sessionId}`);
 
       // Get session context
       const sessionContext = {
@@ -105,34 +100,55 @@ export const generateQuestions = functions.firestore
       // Generate questions based on analysis
       const questions = await generatePracticeQuestions(newData.aiAnalysis, sessionContext);
 
-      // Schedule for next day at 3pm (15:00)
-      const scheduledFor = new Date();
-      scheduledFor.setDate(scheduledFor.getDate() + 1);
-      scheduledFor.setHours(15, 0, 0, 0);
-
-      // Create practice item document
-      await admin.firestore().collection('practice_items').add({
-        studentId: newData.studentId,
-        sessionId: sessionId,
-        goalId: newData.goalId,
-        scheduledFor: admin.firestore.Timestamp.fromDate(scheduledFor),
-        status: 'pending',
-        questions: questions,
-        responses: [],
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      // Log questions with answers for debugging
+      console.log(`📝 Generated ${questions.length} shared questions for session ${sessionId} (${sessionContext.subject}):`);
+      questions.forEach((q, idx) => {
+        console.log(`  Q${idx + 1}: ${q.text}`);
+        console.log(`  ✅ Answer: ${q.correctAnswer}`);
       });
 
-      console.log(`Successfully generated ${questions.length} questions for session ${sessionId}`);
+      // Get student info for attribution
+      const studentDoc = await admin.firestore().collection('students').doc(newData.studentId).get();
+      const studentName = studentDoc.exists ? (studentDoc.data()?.name || 'Anonymous') : 'Anonymous';
+
+      // Add each question to shared questions collection
+      const batch = admin.firestore().batch();
+      questions.forEach((question: any) => {
+        const questionRef = admin.firestore().collection('questions').doc();
+        batch.set(questionRef, {
+          subject: newData.subject || 'Unknown',
+          topics: newData.aiAnalysis.topicsCovered || [],
+          difficulty: question.difficulty || 'medium',
+          text: question.text,
+          correctAnswer: question.correctAnswer,
+          explanation: question.explanation || question.aiFeedback || '',
+          hint: question.hint || '',
+          // Attribution
+          createdBy: newData.studentId,
+          createdByName: studentName,
+          source: 'session_analysis',
+          sessionId: sessionId,
+          // Metadata
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          upvotes: 0,
+          timesAttempted: 0,
+          timesCorrect: 0,
+        });
+      });
+
+      await batch.commit();
+
+      console.log(`✅ Successfully added ${questions.length} shared questions to pool from session ${sessionId}`);
 
       return null;
     } catch (error) {
-      console.error(`Error generating questions for session ${sessionId}:`, error);
+      console.error(`Error generating shared questions for session ${sessionId}:`, error);
       throw error;
     }
   });
 
 /**
- * Evaluate student answer and update gamification
+ * Evaluate student answer for shared questions and update gamification
  * Callable function from client
  */
 export const evaluateAnswer = functions.https.onCall(async (data, context) => {
@@ -141,40 +157,29 @@ export const evaluateAnswer = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const { practiceId, questionId, studentAnswer } = data;
+  const { questionId, studentAnswer } = data;
   const studentId = context.auth.uid;
 
-  if (!practiceId || !questionId || !studentAnswer) {
+  if (!questionId || !studentAnswer) {
     throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
   }
 
   try {
-    console.log(`Evaluating answer for practice ${practiceId}, question ${questionId}`);
+    console.log(`Evaluating answer for question ${questionId} from student ${studentId}`);
     
-    // Get practice item
-    const practiceDoc = await admin.firestore()
-      .collection('practice_items')
-      .doc(practiceId)
+    // Get question from shared collection
+    const questionDoc = await admin.firestore()
+      .collection('questions')
+      .doc(questionId)
       .get();
 
-    if (!practiceDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Practice item not found');
-    }
-
-    const practiceData = practiceDoc.data();
-    if (!practiceData) {
-      throw new functions.https.HttpsError('not-found', 'Practice item data not found');
-    }
-
-    if (practiceData.studentId !== studentId) {
-      throw new functions.https.HttpsError('permission-denied', 'Not authorized');
-    }
-
-    // Find question
-    const question = practiceData.questions?.find((q: any) => q.questionId === questionId);
-    if (!question) {
-      console.error(`Question ${questionId} not found in practice item ${practiceId}`);
+    if (!questionDoc.exists) {
       throw new functions.https.HttpsError('not-found', 'Question not found');
+    }
+
+    const question = questionDoc.data();
+    if (!question) {
+      throw new functions.https.HttpsError('not-found', 'Question data not found');
     }
 
     console.log(`Question found: ${question.text.substring(0, 50)}...`);
@@ -182,7 +187,7 @@ export const evaluateAnswer = functions.https.onCall(async (data, context) => {
     // Evaluate answer with AI
     let evaluation;
     try {
-      evaluation = await evaluateAnswerAI(question, studentAnswer);
+      evaluation = await evaluateAnswerAI(question as any, studentAnswer);
       console.log(`Evaluation result: isCorrect=${evaluation.isCorrect}`);
     } catch (evalError) {
       console.error('Error in evaluateAnswerAI:', evalError);
@@ -198,104 +203,24 @@ export const evaluateAnswer = functions.https.onCall(async (data, context) => {
 
     // Calculate points
     const pointsToAward = evaluation.isCorrect 
-      ? (question.pointsValue || 10)
-      : Math.floor((question.pointsValue || 10) / 2);
+      ? 10  // Standard points for correct answer
+      : 0;  // No points for incorrect answer
 
-    // If answer is incorrect, regenerate the question instead of just recording it
-    if (!evaluation.isCorrect) {
-      // Get session data to regenerate question
-      const sessionDoc = await admin.firestore()
-        .collection('sessions')
-        .doc(practiceData.sessionId)
-        .get();
-      
-      if (sessionDoc.exists) {
-        const sessionData = sessionDoc.data();
-        if (sessionData?.aiAnalysis) {
-          // Generate new question with same difficulty
-          const sessionContext = {
-            tutorName: sessionData.tutorName || 'Your tutor',
-            subject: sessionData.subject || 'Unknown',
-            sessionDate: sessionData.date ? sessionData.date.toDate().toISOString() : new Date().toISOString(),
-          };
-          
-          const newQuestion = await generateSingleQuestion(
-            sessionData.aiAnalysis,
-            sessionContext,
-            question.difficulty || 'medium'
-          );
-          
-          // Replace the incorrect question with the new one
-          const questions = practiceData.questions || [];
-          const questionIndex = questions.findIndex((q: any) => q.questionId === questionId);
-          
-          if (questionIndex >= 0) {
-            questions[questionIndex] = newQuestion;
-            
-            // Update practice item with new question (don't add incorrect response)
-            await practiceDoc.ref.update({
-              questions: questions,
-            });
-            
-            // Get student data for gamification (but don't update points for wrong answer)
-            const studentRef = admin.firestore().collection('students').doc(studentId);
-            const studentDoc = await studentRef.get();
-            
-            if (studentDoc.exists) {
-              const student = studentDoc.data();
-              const gamification = student?.gamification || {
-                totalPoints: 0,
-                level: 1,
-                currentStreak: 0,
-                longestStreak: 0,
-                lastActivityDate: '',
-                badges: [],
-                dailyGoals: { date: '', target: 3, completed: 0, status: 'in_progress' },
-              };
-              
-              return {
-                isCorrect: false,
-                feedback: evaluation.feedback + ' A new question has been generated for you to try again!',
-                pointsAwarded: 0,
-                regenerated: true,
-                newQuestion: newQuestion,
-                leveledUp: false,
-                newLevel: gamification.level || 1,
-                newBadges: [],
-                dailyGoalComplete: false,
-                currentStreak: gamification.currentStreak || 0,
-              };
-            }
-          }
-        }
-      }
-      
-      // If regeneration failed, return error response
-      return {
-        isCorrect: false,
-        feedback: evaluation.feedback + ' Please try again!',
-        pointsAwarded: 0,
-        regenerated: false,
-        leveledUp: false,
-        newLevel: 1,
-        newBadges: [],
-        dailyGoalComplete: false,
-        currentStreak: 0,
-      };
-    }
-
-    // If answer is correct, record the response normally
-    const response = {
+    // Record user response in shared collection
+    await admin.firestore().collection('user_responses').add({
+      studentId,
       questionId,
       studentAnswer,
-      submittedAt: admin.firestore.Timestamp.now(),
       isCorrect: evaluation.isCorrect,
-      aiFeedback: evaluation.feedback,
+      feedback: evaluation.feedback,
       pointsAwarded: pointsToAward,
-    };
+      attemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-    await practiceDoc.ref.update({
-      responses: admin.firestore.FieldValue.arrayUnion(response),
+    // Update question statistics
+    await questionDoc.ref.update({
+      timesAttempted: admin.firestore.FieldValue.increment(1),
+      timesCorrect: evaluation.isCorrect ? admin.firestore.FieldValue.increment(1) : question.timesCorrect || 0,
     });
 
     // Get student data
@@ -397,6 +322,7 @@ export const evaluateAnswer = functions.https.onCall(async (data, context) => {
 
 /**
  * Generate questions on-demand for a checkpoint
+ * Now with caching support for instant loading!
  * Callable function from client
  */
 export const generateCheckpointQuestions = functions.https.onCall(async (data, context) => {
@@ -404,7 +330,7 @@ export const generateCheckpointQuestions = functions.https.onCall(async (data, c
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const { sessionIds, difficulty, subject } = data;
+  const { sessionIds, difficulty, subject, checkpointId } = data;
   const studentId = context.auth.uid;
 
   if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
@@ -417,6 +343,24 @@ export const generateCheckpointQuestions = functions.https.onCall(async (data, c
 
   try {
     const db = admin.firestore();
+    
+    // 🚀 CHECK CACHE FIRST for instant loading!
+    if (checkpointId) {
+      const cacheId = `${checkpointId}_${studentId}_${difficulty}`;
+      const cacheDoc = await db.collection('checkpoint_questions_cache').doc(cacheId).get();
+      
+      if (cacheDoc.exists) {
+        const cacheData = cacheDoc.data();
+        console.log(`✅ Cache HIT! Loading questions instantly for ${cacheId}`);
+        return {
+          questions: cacheData?.questions || [],
+          sessionIds: sessionIds,
+          difficulty: difficulty,
+          fromCache: true,
+        };
+      }
+      console.log(`❌ Cache MISS for ${cacheId}, generating...`);
+    }
     
     // Get the first session to get analysis data
     const sessionDoc = await db.collection('sessions').doc(sessionIds[0]).get();
@@ -462,10 +406,29 @@ export const generateCheckpointQuestions = functions.https.onCall(async (data, c
       }
     }
 
+    const finalQuestions = filteredQuestions.slice(0, 3);
+
+    // 💾 SAVE TO CACHE for next time
+    if (checkpointId) {
+      const cacheId = `${checkpointId}_${studentId}_${difficulty}`;
+      await db.collection('checkpoint_questions_cache').doc(cacheId).set({
+        checkpointId,
+        studentId,
+        difficulty,
+        subject,
+        questions: finalQuestions,
+        sessionIds: sessionIds,
+        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        used: false,
+      });
+      console.log(`💾 Cached questions for ${cacheId}`);
+    }
+
     return {
-      questions: filteredQuestions.slice(0, 3), // Ensure exactly 3 questions
+      questions: finalQuestions,
       sessionIds: sessionIds,
       difficulty: difficulty,
+      fromCache: false,
     };
   } catch (error) {
     console.error('Error generating checkpoint questions:', error);
@@ -473,50 +436,6 @@ export const generateCheckpointQuestions = functions.https.onCall(async (data, c
       throw error;
     }
     throw new functions.https.HttpsError('internal', 'Failed to generate questions');
-  }
-});
-
-/**
- * Generate AI chat response with context
- * Callable function from client
- */
-export const generateChatResponseFunction = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
-
-  const { conversationId, userMessage, studentContext } = data;
-  const studentId = context.auth.uid;
-
-  if (!conversationId || !userMessage || !studentContext) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
-  }
-
-  try {
-    // Get conversation history from Firestore
-    const messagesSnapshot = await admin.firestore()
-      .collection('conversations')
-      .doc(conversationId)
-      .collection('messages')
-      .orderBy('timestamp', 'asc')
-      .limit(10) // Last 10 messages for context
-      .get();
-
-    const conversationHistory = messagesSnapshot.docs.map(doc => {
-      const msgData = doc.data();
-      return {
-        role: msgData.role as 'user' | 'assistant',
-        content: msgData.content,
-      };
-    });
-
-    // Generate AI response
-    const aiResponse = await generateChatResponse(conversationHistory, studentContext);
-
-    return { response: aiResponse };
-  } catch (error) {
-    console.error('Error generating chat response:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to generate chat response');
   }
 });
 
@@ -541,54 +460,89 @@ export const checkStudentHealth = functions.pubsub
   });
 
 /**
- * Manual trigger for student health check (for testing)
- * Call via: httpsCallable(functions, 'checkStudentHealthManual')
+ * Generate a fake tutoring session using AI
+ * Callable function from client - creates realistic demo sessions
  */
-export const checkStudentHealthManual = functions.https.onCall(async (data, context) => {
-  // Only allow authenticated users (or add admin check)
+export const generateFakeSession = functions.https.onCall(async (data, context) => {
+  // Check authentication
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  try {
-    const results = await checkAllStudentsHealth();
-    return results;
-  } catch (error) {
-    console.error('Error during manual health check:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to check student health');
-  }
-});
+  const { subject, tutorName } = data;
+  const studentId = context.auth.uid;
 
-/**
- * Check health for a specific student (for testing)
- */
-export const checkSingleStudentHealth = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
-
-  const { studentId } = data;
-  if (!studentId) {
-    throw new functions.https.HttpsError('invalid-argument', 'studentId is required');
-  }
-
-  // Only allow checking own health or admin
-  if (context.auth.uid !== studentId) {
-    throw new functions.https.HttpsError('permission-denied', 'Can only check own health');
-  }
+  // Default values if not provided
+  const sessionSubject = subject || 'Mathematics';
+  const sessionTutorName = tutorName || 'Dr. Sarah Chen';
 
   try {
-    const healthCheck = await checkStudentHealthHelper(studentId);
+    // Import OpenAI handler
+    const { callOpenAI } = await import('./openai');
+
+    // Generate a realistic tutoring session transcript using AI
+    const systemPrompt = `You are a tutoring session transcript generator. Create a realistic, natural conversation between a tutor and student about ${sessionSubject}.
+
+Requirements:
+- Make it sound like a real tutoring session (10-15 exchanges)
+- Include the tutor teaching concepts, asking questions, and providing feedback
+- Show the student asking questions, making mistakes, and learning
+- Cover 2-3 key concepts in ${sessionSubject}
+- Use natural, conversational language
+- Include some mathematical work or examples if applicable
+- Format as: "Tutor: \"...\"\nStudent: \"...\"\nTutor: \"...\"" (with quotes)
+
+Generate a realistic transcript that would come from a real tutoring session.`;
+
+    const transcript = await callOpenAI(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate a realistic ${sessionSubject} tutoring session transcript between ${sessionTutorName} and a student.` }
+      ],
+      {
+        model: 'gpt-3.5-turbo',
+        temperature: 0.8,
+        maxTokens: 1000,
+      }
+    );
+
+    // Get student's goals to determine goalId
+    const studentDoc = await admin.firestore().collection('students').doc(studentId).get();
+    const studentData = studentDoc.data();
+    const goals = studentData?.goals || [];
     
-    // If at risk, send nudge
-    if (healthCheck.isAtRisk) {
-      await sendBookingNudge(studentId, healthCheck);
+    // Find matching goal or create a default goalId
+    let goalId = goals.find((g: any) => g.subject === sessionSubject)?.goalId;
+    if (!goalId) {
+      goalId = `goal-${sessionSubject.toLowerCase().replace(/\s+/g, '-')}`;
     }
 
-    return healthCheck;
+    // Create session document in Firestore
+    // This will automatically trigger processTranscript -> generateQuestions
+    const sessionData = {
+      studentId,
+      goalId,
+      subject: sessionSubject,
+      tutorName: sessionTutorName,
+      transcript: transcript.trim(),
+      date: admin.firestore.Timestamp.now(),
+      status: 'completed',
+    };
+
+    const sessionRef = await admin.firestore().collection('sessions').add(sessionData);
+    console.log(`✅ Generated fake session ${sessionRef.id} for subject ${sessionSubject}`);
+
+    return { 
+      success: true, 
+      sessionId: sessionRef.id,
+      message: `Fake ${sessionSubject} session created! The AI will analyze it and generate practice questions.` 
+    };
   } catch (error) {
-    console.error('Error checking student health:', error);
-    throw new functions.https.HttpsError('internal', 'Failed to check student health');
+    console.error(`Error generating fake session:`, error);
+    throw new functions.https.HttpsError(
+      'internal',
+      `Failed to generate fake session: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 });
 
@@ -700,26 +654,97 @@ export const onGoalCompletion = functions.firestore
   });
 
 /**
- * Retention Automation - Check Student Health
- * Runs daily at 10 AM EST to identify at-risk students and send booking nudges
+ * Generate more questions similar to an existing one
+ * Callable function from client
  */
-export const checkStudentHealthScheduled = functions.pubsub
-  .schedule('0 10 * * *') // Every day at 10 AM
-  .timeZone('America/New_York')
-  .onRun(async (context) => {
-    console.log('Starting daily student health check...');
+export const generateMoreQuestions = functions.https.onCall(async (data, context) => {
+  // Check authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { questionId, count = 3 } = data;
+  const studentId = context.auth.uid;
+
+  if (!questionId) {
+    throw new functions.https.HttpsError('invalid-argument', 'questionId is required');
+  }
+
+  try {
+    console.log(`Generating ${count} more questions similar to ${questionId}`);
+
+    // Get the original question
+    const questionDoc = await admin.firestore().collection('questions').doc(questionId).get();
     
-    try {
-      const results = await checkAllStudentsHealth();
-      console.log('Health check results:', results);
-      return results;
-    } catch (error) {
-      console.error('Error during health check:', error);
+    if (!questionDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Question not found');
+    }
+
+    const originalQuestion = questionDoc.data();
+    if (!originalQuestion) {
+      throw new functions.https.HttpsError('not-found', 'Question data not found');
+    }
+
+    // Get student info for attribution
+    const studentDoc = await admin.firestore().collection('students').doc(studentId).get();
+    const studentName = studentDoc.exists ? (studentDoc.data()?.name || 'Anonymous') : 'Anonymous';
+
+    // Generate similar questions using OpenAI
+    const { generateSimilarQuestionsAI } = require('./openai-handlers');
+    const newQuestions = await generateSimilarQuestionsAI({
+      subject: originalQuestion.subject,
+      topics: originalQuestion.topics,
+      difficulty: originalQuestion.difficulty,
+      exampleQuestion: originalQuestion.text,
+      count,
+    });
+
+    // Add generated questions to shared collection
+    const batch = admin.firestore().batch();
+    newQuestions.forEach((question: any) => {
+      const questionRef = admin.firestore().collection('questions').doc();
+      batch.set(questionRef, {
+        subject: originalQuestion.subject,
+        topics: originalQuestion.topics,
+        difficulty: originalQuestion.difficulty,
+        text: question.text,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation || '',
+        hint: question.hint || '',
+        // Attribution
+        createdBy: studentId,
+        createdByName: studentName,
+        source: 'user_generated',
+        basedOnQuestionId: questionId,
+        // Metadata
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        upvotes: 0,
+        timesAttempted: 0,
+        timesCorrect: 0,
+      });
+    });
+
+    await batch.commit();
+
+    console.log(`✅ Successfully generated ${newQuestions.length} similar questions`);
+
+    return {
+      success: true,
+      count: newQuestions.length,
+      message: `Generated ${newQuestions.length} new questions!`,
+    };
+  } catch (error) {
+    console.error('Error generating similar questions:', error);
+    if (error instanceof functions.https.HttpsError) {
       throw error;
     }
-  });
+    throw new functions.https.HttpsError('internal', `Failed to generate questions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+});
 
 // Re-export learning path functions so they're available to Firebase Functions runtime
-export { createLearningPathFromSession, updateCheckpointCompletion };
+export { createLearningPathFromSession };
 
+// Export chat companion functions
+export { chatCompanion, scheduleTutorMeeting } from './chat-companion';
 

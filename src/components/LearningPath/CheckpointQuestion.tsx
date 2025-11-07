@@ -47,6 +47,8 @@ function CheckpointQuestion({
   const [showSuccess, setShowSuccess] = useState(false);
   const [practiceItemId, setPracticeItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previousAnswers, setPreviousAnswers] = useState<any[]>([]);
+  const [showingPreviousAnswers, setShowingPreviousAnswers] = useState(false);
   const { currentUser } = useAuth();
   const userId = currentUser?.uid || '';
 
@@ -70,11 +72,17 @@ function CheckpointQuestion({
           sessionIds,
           difficulty,
           subject,
+          checkpointId, // Pass checkpoint ID for caching
         });
 
         const data = result.data as {
           questions: PracticeQuestion[];
+          fromCache?: boolean;
         };
+
+        if (data.fromCache) {
+          console.log('✅ Questions loaded from cache instantly!');
+        }
 
         setQuestions(data.questions);
         
@@ -103,7 +111,53 @@ function CheckpointQuestion({
     };
 
     generateQuestions();
-  }, [sessionIds, difficulty, subject, onClose, userId]);
+  }, [sessionIds, difficulty, subject, userId]);
+
+  // Check for previous answers when component mounts
+  useEffect(() => {
+    const checkForPreviousAnswers = async () => {
+      if (!userId || !checkpointId) return;
+      
+      try {
+        const practiceQuery = query(
+          collection(db, 'practice_items'),
+          where('studentId', '==', userId),
+          where('checkpointId', '==', checkpointId)
+        );
+        
+        const snapshot = await getDocs(practiceQuery);
+        
+        if (!snapshot.empty) {
+          const allResponses: any[] = [];
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.responses && data.responses.length > 0) {
+              data.responses.forEach((response: any) => {
+                const question = data.questions?.find((q: any) => q.questionId === response.questionId);
+                if (question) {
+                  allResponses.push({
+                    ...response,
+                    questionText: question.text,
+                    correctAnswer: question.correctAnswer,
+                    topic: question.topic,
+                    difficulty: question.difficulty,
+                  });
+                }
+              });
+            }
+          });
+          
+          if (allResponses.length > 0) {
+            setPreviousAnswers(allResponses);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for previous answers:', error);
+      }
+    };
+    
+    checkForPreviousAnswers();
+  }, [userId, checkpointId]);
 
   const handleSubmitAnswer = async () => {
     if (!currentQuestion || !answer.trim() || isSubmitting || !practiceItemId) return;
@@ -282,12 +336,79 @@ function CheckpointQuestion({
     );
   }
 
+  if (showingPreviousAnswers && previousAnswers.length > 0) {
+    return (
+      <div className="checkpoint-question-overlay">
+        <div className="checkpoint-question-modal">
+          <div className="question-header">
+            <h2 style={{ margin: 0, fontSize: '18px' }}>Previous Answers Review</h2>
+            <button className="close-button" onClick={() => setShowingPreviousAnswers(false)}>← Back</button>
+          </div>
+          
+          <div style={{ padding: '20px', maxHeight: '600px', overflowY: 'auto' }}>
+            {previousAnswers.map((answer, index) => (
+              <div key={index} style={{
+                marginBottom: '24px',
+                padding: '16px',
+                backgroundColor: answer.isCorrect ? '#f0fdf4' : '#fef2f2',
+                borderRadius: '8px',
+                border: `2px solid ${answer.isCorrect ? '#4caf50' : '#ef4444'}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '20px' }}>{answer.isCorrect ? '✅' : '❌'}</span>
+                  <span style={{
+                    padding: '4px 8px',
+                    backgroundColor: answer.difficulty === 'easy' ? '#4caf50' : answer.difficulty === 'medium' ? '#ffc107' : '#f44336',
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    {answer.difficulty?.toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#666' }}>{answer.topic}</span>
+                </div>
+                
+                <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>Q: {answer.questionText}</p>
+                <p style={{ color: '#666' }}>Your answer: <strong>{answer.studentAnswer}</strong></p>
+                <p style={{ color: '#4caf50' }}>Correct answer: <strong>{answer.correctAnswer}</strong></p>
+                <p style={{ marginTop: '12px', padding: '12px', backgroundColor: 'white', borderRadius: '6px' }}>
+                  <strong>AI Feedback:</strong> {answer.aiFeedback}
+                </p>
+                <p style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+                  Points earned: {answer.pointsAwarded}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="checkpoint-question-overlay">
       <div className="checkpoint-question-modal">
         <div className="question-header">
           <div className="question-progress">
             Question {currentQuestionIndex + 1} of {questions.length}
+            {previousAnswers.length > 0 && (
+              <button 
+                onClick={() => setShowingPreviousAnswers(true)}
+                style={{
+                  marginLeft: '12px',
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                📚 Review Previous Answers
+              </button>
+            )}
           </div>
           <div className="correct-counter">
             ✓ {correctAnswers}/3 Correct

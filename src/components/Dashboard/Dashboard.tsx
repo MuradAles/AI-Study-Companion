@@ -1,70 +1,45 @@
-import { useEffect, useState } from 'react';
-import { doc, onSnapshot, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { db, functions } from '../../services/firebase';
+import React, { useEffect, useState } from 'react';
+import { doc, onSnapshot, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInitializeStudent } from '../../hooks/useInitializeStudent';
-import { useNotifications } from '../../hooks/useNotifications';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '../Shared/Navigation';
-import LoadDemoSessions from './LoadDemoSessions';
 import './Dashboard.css';
 
 interface Student {
   id: string;
   name: string;
-  email: string;
-  goals: Array<{
-    goalId: string;
-    subject: string;
-    status: string;
-    sessionsCompleted: number;
-    targetSessions: number;
-  }>;
   gamification: {
     totalPoints: number;
-    level: number;
     currentStreak: number;
-    longestStreak: number;
+    level: number;
     dailyGoals: {
       date: string;
       target: number;
       completed: number;
-      status: string;
     };
   };
-  crossSellSuggestions?: Array<{
-    completedSubject: string;
-    suggestions: string[];
-    createdAt: Timestamp | string;
-  }>;
-}
-
-interface TranscriptAnalysis {
-  topicsCovered: string[];
-  studentStruggles: string[];
-  studentStrengths: string[];
-  keyMoments: Array<{
-    timestamp: string;
-    type: 'confusion' | 'breakthrough' | 'question' | 'explanation';
-    note: string;
-  }>;
-  confidenceLevel: number;
-  suggestedTopics: string[];
-  processedAt?: string | Timestamp;
 }
 
 interface Session {
   id: string;
-  studentId: string;
-  goalId: string;
   subject: string;
   tutorName: string;
-  transcript?: string;
-  aiAnalysis?: TranscriptAnalysis;
-  processingError?: string;
-  date?: Timestamp;
-  status?: string;
+  status: string;
+  questionsCount: number;
+  createdAt: any;
+  date: any;
+}
+
+interface Achievement {
+  id: string;
+  emoji: string;
+  title: string;
+  description: string;
+  unlocked: boolean;
+  progress?: number;
+  target?: number;
 }
 
 function Dashboard() {
@@ -72,26 +47,21 @@ function Dashboard() {
   const navigate = useNavigate();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasSessions, setHasSessions] = useState<boolean | null>(null);
-  const [practiceItemsCount, setPracticeItemsCount] = useState<number | null>(null);
-  const [sessionsStatus, setSessionsStatus] = useState<{
-    total: number;
-    processed: number;
-    processing: number;
-    error: number;
-  } | null>(null);
-  const [recentSessions, setRecentSessions] = useState<Session[]>([]);
-  const [retryingSessions, setRetryingSessions] = useState<Set<string>>(new Set());
+  const [practiceCount, setPracticeCount] = useState(0);
+  const [questionsAnswered, setQuestionsAnswered] = useState(0);
+  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [topicsExplored, setTopicsExplored] = useState(0);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
 
-  // Initialize student data if needed
   useInitializeStudent();
-
-  // Register for notifications
-  useNotifications();
 
   const userId = currentUser?.uid || '';
 
+  // Load student data
   useEffect(() => {
+    if (!userId) return;
+
     const unsubscribe = onSnapshot(
       doc(db, 'students', userId),
       (doc) => {
@@ -109,149 +79,154 @@ function Dashboard() {
     return unsubscribe;
   }, [userId]);
 
-  // Check if student has any sessions
+  // Load practice count and topics
   useEffect(() => {
-    if (!userId) {
-      setHasSessions(null);
-      return;
-    }
+    if (!userId) return;
 
-    const checkSessions = async () => {
-      try {
-        const sessionsQuery = query(
-          collection(db, 'sessions'),
-          where('studentId', '==', userId)
-        );
-        const snapshot = await getDocs(sessionsQuery);
-        const sessions = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Session[];
+    const loadPracticeData = async () => {
+      const practiceQuery = query(
+        collection(db, 'practice_items'),
+        where('studentId', '==', userId)
+      );
+      const snapshot = await getDocs(practiceQuery);
+      
+      let total = 0;
+      const uniqueTopics = new Set<string>();
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const questions = data.questions || [];
+        const responses = data.responses || [];
+        const answeredIds = new Set(responses.map((r: any) => r.questionId));
+        const unanswered = questions.filter((q: any) => !answeredIds.has(q.questionId));
+        total += unanswered.length;
         
-        setHasSessions(!snapshot.empty);
-        console.log(`📊 Student has ${snapshot.size} sessions`);
-        
-        // Check session processing status
-        const processed = sessions.filter(s => s.aiAnalysis).length;
-        const processing = sessions.filter(s => !s.aiAnalysis && !s.processingError).length;
-        const error = sessions.filter(s => s.processingError).length;
-        
-        setSessionsStatus({
-          total: snapshot.size,
-          processed,
-          processing,
-          error,
+        // Count unique topics
+        questions.forEach((q: any) => {
+          if (q.topic) uniqueTopics.add(q.topic);
         });
-
-        // Store recent sessions for display
-        setRecentSessions(sessions.slice(0, 5));
-        
-        // Debug logging
-        sessions.forEach(session => {
-          console.log(`Session ${session.id} (${session.subject}):`, {
-            hasTranscript: !!session.transcript,
-            hasAiAnalysis: !!session.aiAnalysis,
-            hasError: !!session.processingError,
-            error: session.processingError
-          });
-        });
-      } catch (error) {
-        console.error('Error checking sessions:', error);
-        setHasSessions(false);
-      }
+      });
+      
+      setPracticeCount(total);
+      setTopicsExplored(uniqueTopics.size);
     };
 
-    checkSessions();
+    loadPracticeData();
   }, [userId]);
 
-  // Check for available practice items
+  // Load stats and sessions
   useEffect(() => {
-    if (!userId) {
-      setPracticeItemsCount(null);
-      return;
-    }
+    if (!userId) return;
 
-    const checkPracticeItems = async () => {
-      try {
-        const practiceQuery = query(
-          collection(db, 'practice_items'),
-          where('studentId', '==', userId),
-          where('status', '==', 'pending')
-        );
-        const snapshot = await getDocs(practiceQuery);
-        const totalQuestions = snapshot.docs.reduce((sum, doc) => {
-          const data = doc.data();
-          return sum + (data.questions?.length || 0);
-        }, 0);
-        setPracticeItemsCount(totalQuestions);
-        console.log(`📚 Student has ${totalQuestions} practice questions available`);
-      } catch (error) {
-        console.error('Error checking practice items:', error);
-        setPracticeItemsCount(0);
-      }
-    };
-
-    checkPracticeItems();
-    
-    // Refresh practice items when sessions status changes
-    if (sessionsStatus) {
-      const interval = setInterval(checkPracticeItems, 5000); // Check every 5 seconds
-      return () => clearInterval(interval);
-    }
-  }, [userId, sessionsStatus]);
-
-  // Retry processing failed sessions
-  const retryFailedSessions = async () => {
-    if (!userId || !recentSessions.length) return;
-    
-    const failedSessions = recentSessions.filter(s => s.processingError);
-    if (failedSessions.length === 0) return;
-
-    setRetryingSessions(new Set(failedSessions.map(s => s.id)));
-
-    try {
-      const retrySessionProcessing = httpsCallable(functions, 'retrySessionProcessing');
+    const loadData = async () => {
+      // Practice stats
+      const practiceQuery = query(
+        collection(db, 'practice_items'),
+        where('studentId', '==', userId)
+      );
+      const practiceSnapshot = await getDocs(practiceQuery);
       
-      // Retry each failed session
-      const retryPromises = failedSessions.map(async (session) => {
-        try {
-          await retrySessionProcessing({ sessionId: session.id });
-          return { sessionId: session.id, success: true };
-        } catch (error) {
-          console.error(`Error retrying session ${session.id}:`, error);
-          return { sessionId: session.id, success: false, error };
-        }
+      let answered = 0;
+      let correct = 0;
+      
+      practiceSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const responses = data.responses || [];
+        responses.forEach((r: any) => {
+          answered++;
+          if (r.isCorrect) correct++;
+        });
       });
+      
+      setQuestionsAnswered(answered);
+      setCorrectAnswers(correct);
 
-      const results = await Promise.all(retryPromises);
-      const successCount = results.filter(r => r.success).length;
-      const failCount = results.filter(r => !r.success).length;
-
-      // Refresh sessions after a short delay to allow processing to complete
-      setTimeout(async () => {
-        const sessionsQuery = query(
-          collection(db, 'sessions'),
-          where('studentId', '==', userId)
-        );
-        const snapshot = await getDocs(sessionsQuery);
-        const sessions = snapshot.docs.map(doc => ({
+      // Sessions - simplified query without orderBy
+      const sessionsQuery = query(
+        collection(db, 'sessions'),
+        where('studentId', '==', userId),
+        limit(5)
+      );
+      const sessionsSnapshot = await getDocs(sessionsQuery);
+      const sessionsData = sessionsSnapshot.docs
+        .map(doc => ({
           id: doc.id,
           ...doc.data()
-        })) as Session[];
-        setRecentSessions(sessions.slice(0, 5));
-      }, 2000);
+        } as Session))
+        .sort((a, b) => {
+          // Sort by createdAt in memory instead
+          const aTime = a.createdAt?.toMillis?.() || 0;
+          const bTime = b.createdAt?.toMillis?.() || 0;
+          return bTime - aTime;
+        });
+      setSessions(sessionsData);
+    };
 
-      if (failCount > 0) {
-        console.warn(`✅ Retried ${successCount} session(s) successfully.\n❌ ${failCount} session(s) failed. Check console for details.`);
-      } else {
-        console.log(`✅ Successfully retried ${successCount} session(s)! Processing will complete shortly.`);
-      }
-    } catch (error) {
-      console.error('Error retrying sessions:', error instanceof Error ? error.message : 'Unknown error');
-    } finally {
-      setRetryingSessions(new Set());
-    }
-  };
+    loadData();
+  }, [userId]);
+
+  // Calculate achievements
+  useEffect(() => {
+    const stars = Math.floor(questionsAnswered / 3);
+    const streak = student?.gamification?.currentStreak || 0;
+    
+    const achievementsList: Achievement[] = [
+      {
+        id: 'first_steps',
+        emoji: '🎯',
+        title: 'First Steps',
+        description: 'Answer your first question',
+        unlocked: questionsAnswered >= 1,
+      },
+      {
+        id: 'explorer',
+        emoji: '📚',
+        title: 'Explorer',
+        description: 'Explore 3 different topics',
+        unlocked: topicsExplored >= 3,
+        progress: topicsExplored,
+        target: 3,
+      },
+      {
+        id: 'dedicated',
+        emoji: '🔥',
+        title: 'Dedicated',
+        description: 'Maintain a 3-day streak',
+        unlocked: streak >= 3,
+        progress: streak,
+        target: 3,
+      },
+      {
+        id: 'problem_solver',
+        emoji: '⚡',
+        title: 'Problem Solver',
+        description: 'Solve 10 questions',
+        unlocked: questionsAnswered >= 10,
+        progress: questionsAnswered,
+        target: 10,
+      },
+      {
+        id: 'star_collector',
+        emoji: '⭐',
+        title: 'Star Collector',
+        description: 'Earn 10 stars',
+        unlocked: stars >= 10,
+        progress: stars,
+        target: 10,
+      },
+      {
+        id: 'accuracy_master',
+        emoji: '🎓',
+        title: 'Accuracy Master',
+        description: 'Achieve 80% accuracy',
+        unlocked: questionsAnswered >= 5 && (correctAnswers / questionsAnswered) >= 0.8,
+        progress: questionsAnswered >= 5 ? Math.round((correctAnswers / questionsAnswered) * 100) : 0,
+        target: 80,
+      },
+    ];
+    
+    setAchievements(achievementsList);
+  }, [questionsAnswered, correctAnswers, topicsExplored, student]);
 
   if (loading) {
     return (
@@ -269,17 +244,29 @@ function Dashboard() {
 
   const gamification = student?.gamification || {
     totalPoints: 0,
-    level: 1,
     currentStreak: 0,
-    longestStreak: 0,
-    dailyGoals: { date: '', target: 3, completed: 0, status: 'in_progress' },
+    level: 1,
+    dailyGoals: { date: '', target: 3, completed: 0 },
   };
 
-  const dailyGoals = gamification.dailyGoals;
   const today = new Date().toISOString().split('T')[0];
-  const isToday = dailyGoals.date === today;
-  const completed = isToday ? dailyGoals.completed : 0;
-  const target = dailyGoals.target || 3;
+  const isToday = gamification.dailyGoals.date === today;
+  const completed = isToday ? gamification.dailyGoals.completed : 0;
+  const target = gamification.dailyGoals.target || 3;
+  const accuracy = questionsAnswered > 0 ? Math.round((correctAnswers / questionsAnswered) * 100) : 0;
+  const stars = Math.floor(questionsAnswered / 3);
+  
+  // Calculate level based on total points (every 100 points = 1 level)
+  const currentLevel = Math.floor(gamification.totalPoints / 100) + 1;
+  const pointsForNextLevel = 100;
+  const pointsProgress = gamification.totalPoints % 100;
+
+  const unlockedAchievements = achievements.filter(a => a.unlocked);
+  const lockedAchievements = achievements.filter(a => !a.unlocked);
+
+  const handleSessionClick = (sessionId: string) => {
+    navigate(`/session/${sessionId}`);
+  };
 
   return (
     <div className="dashboard">
@@ -289,234 +276,190 @@ function Dashboard() {
       </header>
       <main className="dashboard-main">
         <div className="dashboard-content">
-          {/* Gamification Header */}
-          <div className="gamification-header">
-            <div className="student-info">
-              <h2>{student?.name || 'Student'}</h2>
-              <div className="stats">
-                <span>Level {gamification.level}</span>
-                <span>•</span>
-                <span>{gamification.totalPoints} pts</span>
-                <span>•</span>
-                <span>🔥 {gamification.currentStreak} day streak</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Daily Goals */}
-          <div className="daily-goals-section">
-            <h3>Today's Goal 🎯</h3>
-            <div className="goal-progress">
-              {Array.from({ length: target }).map((_, i) => (
-                <span key={i} className={i < completed ? 'completed' : 'pending'}>
-                  {i < completed ? '✨' : '⭕'}
-                </span>
-              ))}
-              <span className="goal-text">
-                ({completed}/{target} questions)
-              </span>
-            </div>
-          </div>
-
-          {/* Demo Sessions Loader - Show for new users without sessions */}
-          {hasSessions === false && (
-            <LoadDemoSessions 
-              onComplete={() => {
-                // Refresh student data after demo sessions are created
-                setHasSessions(true);
-                window.location.reload();
-              }}
-            />
-          )}
           
-
-          {/* Debug: Session Status */}
-          {sessionsStatus && sessionsStatus.total > 0 && (
-            <div className="session-status-debug" style={{
-              margin: '20px 0',
-              padding: '15px',
-              backgroundColor: '#f5f5f5',
-              borderRadius: '8px',
-              fontSize: '14px'
-            }}>
-              <h4 style={{ marginTop: 0 }}>Session Processing Status</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '10px' }}>
-                <div>
-                  <strong>Total:</strong> {sessionsStatus.total}
-                </div>
-                <div style={{ color: sessionsStatus.processed > 0 ? 'green' : 'gray' }}>
-                  <strong>Processed:</strong> {sessionsStatus.processed}
-                </div>
-                <div style={{ color: sessionsStatus.processing > 0 ? 'orange' : 'gray' }}>
-                  <strong>Processing:</strong> {sessionsStatus.processing}
-                </div>
-                <div style={{ color: sessionsStatus.error > 0 ? 'red' : 'gray' }}>
-                  <strong>Errors:</strong> {sessionsStatus.error}
-                </div>
-              </div>
-              {recentSessions.length > 0 && (
-                <div style={{ marginTop: '15px' }}>
-                  <strong>Recent Sessions:</strong>
-                  <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
-                    {recentSessions.map(session => (
-                      <li key={session.id} style={{ marginBottom: '5px' }}>
-                        <strong>{session.subject}</strong> - 
-                        {session.aiAnalysis ? (
-                          <span style={{ color: 'green' }}> ✅ Processed</span>
-                        ) : session.processingError ? (
-                          <span style={{ color: 'red' }}> ❌ Error: {session.processingError.substring(0, 50)}...</span>
-                        ) : session.transcript ? (
-                          <span style={{ color: 'orange' }}> ⏳ Processing...</span>
-                        ) : (
-                          <span style={{ color: 'gray' }}> ⚠️ No transcript</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  {sessionsStatus && sessionsStatus.error > 0 && (
-                    <button
-                      onClick={retryFailedSessions}
-                      disabled={retryingSessions.size > 0}
-                      style={{
-                        marginTop: '10px',
-                        padding: '8px 16px',
-                        backgroundColor: retryingSessions.size > 0 ? '#ccc' : '#4CAF50',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: retryingSessions.size > 0 ? 'not-allowed' : 'pointer',
-                        fontSize: '14px'
-                      }}
-                    >
-                      {retryingSessions.size > 0 ? 'Retrying...' : `🔄 Retry ${sessionsStatus.error} Failed Session${sessionsStatus.error > 1 ? 's' : ''}`}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Practice Alert / Welcome Message */}
-          {practiceItemsCount !== null && practiceItemsCount > 0 ? (
-            <div className="practice-alert">
-              <div className="alert-content">
-                <span className="alert-icon">🔔</span>
-                <div>
-                  <h4>Practice Questions Available!</h4>
-                  <p>You have {practiceItemsCount} {practiceItemsCount === 1 ? 'question' : 'questions'} ready to practice. Start now and earn points!</p>
-                </div>
-                <button className="alert-button" onClick={() => navigate('/practice')}>
-                  Start Practicing
-                </button>
+          {/* Profile Header */}
+          <div className="profile-header">
+            <div className="profile-info">
+              <div className="profile-avatar">🧙‍♂️</div>
+              <div className="profile-text">
+                <h2>{student?.name || 'Student'}</h2>
+                <p className="profile-title">Level {currentLevel} • Learning Champion</p>
               </div>
             </div>
-          ) : practiceItemsCount === 0 && sessionsStatus && sessionsStatus.processed > 0 ? (
-            <div className="practice-alert">
-              <div className="alert-content">
-                <span className="alert-icon">✅</span>
-                <div>
-                  <h4>Sessions Processed!</h4>
-                  <p>Your {sessionsStatus.processed} {sessionsStatus.processed === 1 ? 'session has' : 'sessions have'} been analyzed. Practice questions should be available now!</p>
-                </div>
-                <button className="alert-button" onClick={() => navigate('/practice')}>
-                  Check Practice
-                </button>
+            <div className="level-progress">
+              <div className="level-info">
+                <span className="level-text">Level {currentLevel}</span>
+                <span className="points-text">{pointsProgress}/{pointsForNextLevel} pts to Level {currentLevel + 1}</span>
+              </div>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${(pointsProgress / pointsForNextLevel) * 100}%` }} />
               </div>
             </div>
-          ) : practiceItemsCount === 0 && sessionsStatus && sessionsStatus.processing > 0 ? (
-            <div className="practice-alert">
-              <div className="alert-content">
-                <span className="alert-icon">⏳</span>
-                <div>
-                  <h4>Processing Sessions...</h4>
-                  <p>{sessionsStatus.processing} {sessionsStatus.processing === 1 ? 'session is' : 'sessions are'} being analyzed by AI. Practice questions will be available soon!</p>
-                </div>
-              </div>
-            </div>
-          ) : practiceItemsCount === 0 && hasSessions ? (
-            <div className="practice-alert">
-              <div className="alert-content">
-                <span className="alert-icon">⏳</span>
-                <div>
-                  <h4>Practice Questions Coming Soon!</h4>
-                  <p>Your sessions are being analyzed. Practice questions will be available soon!</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="practice-alert welcome-message">
-              <div className="alert-content">
-                <span className="alert-icon">👋</span>
-                <div>
-                  <h4>Or Create Your Own Session</h4>
-                  <p>Create a tutoring session manually. The AI will analyze your session and generate personalized practice questions for tomorrow.</p>
-                </div>
-                <button className="alert-button" onClick={() => navigate('/create-session')}>
-                  Create Your Own Session
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Progress Tracker */}
-          <div className="progress-section">
-            <h3>Your Progress 📊</h3>
-            {student?.goals && student.goals.length > 0 ? (
-              <div className="goals-list">
-                {student.goals.map((goal) => {
-                  const progress = (goal.sessionsCompleted / goal.targetSessions) * 100;
-                  return (
-                    <div key={goal.goalId} className="goal-item">
-                      <div className="goal-header">
-                        <span className="goal-subject">{goal.subject}</span>
-                        <span className="goal-status">{goal.status}</span>
-                      </div>
-                      <div className="progress-bar">
-                        <div
-                          className="progress-fill"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                      <div className="goal-details">
-                        {goal.sessionsCompleted}/{goal.targetSessions} sessions
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p>No active goals. Start a new subject to begin tracking progress!</p>
-            )}
           </div>
 
-          {/* Cross-Sell Suggestions */}
-          {student?.crossSellSuggestions && student.crossSellSuggestions.length > 0 && (
-            <div className="cross-sell-section">
-              <h3>🎉 Recommended Next Steps</h3>
-              {student.crossSellSuggestions.slice(-1).map((suggestion, index) => (
-                <div key={index} className="cross-sell-card">
-                  <p className="cross-sell-title">
-                    Congrats on completing <strong>{suggestion.completedSubject}</strong>!
-                  </p>
-                  <p className="cross-sell-subtitle">
-                    Students like you often enjoy:
-                  </p>
-                  <div className="suggestions-list">
-                    {suggestion.suggestions.map((subject, idx) => (
-                      <button
-                        key={idx}
-                        className="suggestion-button"
-                        onClick={() => {
-                          // TODO: Navigate to subject selection or booking
-                          console.log(`Selected: ${subject}`);
-                        }}
-                      >
-                        {subject}
-                      </button>
-                    ))}
+          {/* Stats Cards with Emojis */}
+          <div className="stats-grid">
+            <div className="stat-card blue-card">
+              <div className="stat-icon">🎯</div>
+              <div className="stat-info">
+                <div className="stat-value">{questionsAnswered}</div>
+                <div className="stat-name">Problems Solved</div>
+              </div>
+            </div>
+            <div className="stat-card pink-card">
+              <div className="stat-icon">📚</div>
+              <div className="stat-info">
+                <div className="stat-value">{topicsExplored}</div>
+                <div className="stat-name">Topics Explored</div>
+              </div>
+            </div>
+            <div className="stat-card yellow-card">
+              <div className="stat-icon">⭐</div>
+              <div className="stat-info">
+                <div className="stat-value">{stars}</div>
+                <div className="stat-name">Stars Earned</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Today's Goal + Practice Questions */}
+          <div className="top-row">
+            <div className="daily-goal-compact">
+              <span className="goal-label">Today's Goal</span>
+              <div className="goal-progress">
+                <span className="goal-number">{completed}/{target}</span>
+                <div className="goal-bar">
+                  <div 
+                    className="goal-bar-fill" 
+                    style={{ width: `${(completed / target) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="practice-questions-card">
+              <span className="questions-label">Practice Questions</span>
+              <div className="questions-content">
+                <span className="questions-number">{practiceCount}</span>
+                <button 
+                  className="start-button" 
+                  onClick={() => navigate('/practice')}
+                  disabled={practiceCount === 0}
+                >
+                  {practiceCount > 0 ? 'Start' : 'None'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Achievements Section */}
+          <div className="achievements-section">
+            <div className="achievements-header">
+              <h3>🏆 Your Achievements</h3>
+              <div className="achievement-count">
+                {unlockedAchievements.length} / {achievements.length}
+              </div>
+            </div>
+            
+            <div className="achievements-tabs">
+              <div className="tab active">
+                <span className="tab-icon">🎉</span>
+                Unlocked ({unlockedAchievements.length})
+              </div>
+              <div className="tab">
+                <span className="tab-icon">🔒</span>
+                To Unlock ({lockedAchievements.length})
+              </div>
+            </div>
+
+            <div className="achievements-grid">
+              {unlockedAchievements.map(achievement => (
+                <div key={achievement.id} className="achievement-card unlocked">
+                  <div className="achievement-emoji">{achievement.emoji}</div>
+                  <div className="achievement-content">
+                    <h4>{achievement.title}</h4>
+                    <p>{achievement.description}</p>
+                    <div className="achievement-badge">✨ Unlocked</div>
                   </div>
                 </div>
               ))}
+              {lockedAchievements.map(achievement => (
+                <div key={achievement.id} className="achievement-card locked">
+                  <div className="achievement-emoji grayscale">{achievement.emoji}</div>
+                  <div className="achievement-content">
+                    <h4>{achievement.title}</h4>
+                    <p>{achievement.description}</p>
+                    {achievement.progress !== undefined && achievement.target && (
+                      <div className="achievement-progress">
+                        <div className="progress-mini-bar">
+                          <div 
+                            className="progress-mini-fill" 
+                            style={{ width: `${(achievement.progress / achievement.target) * 100}%` }}
+                          />
+                        </div>
+                        <span className="progress-text">{achievement.progress}/{achievement.target}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sessions */}
+          {sessions.length > 0 && (
+            <div className="sessions-section">
+              <h3>📝 My Sessions</h3>
+              <div className="sessions-table-container">
+                <table className="sessions-table">
+                  <thead>
+                    <tr>
+                      <th>Subject/Topic</th>
+                      <th>Tutor Name</th>
+                      <th>Last Met</th>
+                      <th>Schedule Meeting</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sessions.map(session => {
+                      const sessionDate = session.date?.toDate?.() || session.createdAt?.toDate?.() || new Date();
+                      return (
+                        <tr key={session.id}>
+                          <td className="session-subject-cell">{session.subject}</td>
+                          <td className="session-tutor-cell">{session.tutorName || 'N/A'}</td>
+                          <td className="session-date-cell">
+                            {sessionDate.toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </td>
+                          <td className="session-action-cell">
+                            <button 
+                              className="schedule-meeting-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert(`Schedule meeting with ${session.tutorName} for ${session.subject} - Coming soon!`);
+                              }}
+                            >
+                              📅 Book Meeting
+                            </button>
+                          </td>
+                          <td className="session-action-cell">
+                            <button 
+                              className="view-details-btn"
+                              onClick={() => navigate(`/session/${session.id}`)}
+                            >
+                              View Details →
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

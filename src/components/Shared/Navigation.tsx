@@ -24,18 +24,6 @@ function Navigation() {
       >
         Learning Path
       </Link>
-      <Link 
-        to="/chat" 
-        className={location.pathname === '/chat' ? 'active' : ''}
-      >
-        Chat
-      </Link>
-      <Link 
-        to="/progress" 
-        className={location.pathname === '/progress' ? 'active' : ''}
-      >
-        Progress
-      </Link>
     </nav>
   );
 }

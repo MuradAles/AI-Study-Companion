@@ -16,6 +16,16 @@ service cloud.firestore {
       allow read: if isOwner(studentId);
       allow create: if isAuthenticated() && request.auth.uid == studentId;
       allow update, delete: if isOwner(studentId);
+      
+      // Chats subcollection - users can read/write their own chats
+      match /chats/{chatId} {
+        allow read, write: if isOwner(studentId);
+        
+        // Messages subcollection - users can read/write their own messages
+        match /messages/{messageId} {
+          allow read, write: if isOwner(studentId);
+        }
+      }
     }
     
     // Sessions collection - users can read their own sessions
@@ -40,19 +50,6 @@ service cloud.firestore {
       allow update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
     }
     
-    // Conversations collection - users can read/write their own conversations
-    match /conversations/{conversationId} {
-      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
-      
-      // Messages subcollection - users can read/write messages in their own conversations
-      match /messages/{messageId} {
-        allow read, write: if isAuthenticated() && 
-          get(/databases/$(database)/documents/conversations/$(conversationId)).data.studentId == request.auth.uid;
-      }
-    }
-    
     // Notifications collection - users can read their own notifications
     match /notifications/{notificationId} {
       allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
@@ -66,6 +63,36 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
       allow update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
       allow delete: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+    }
+    
+    // Shared questions collection - visible to all authenticated users
+    // Only Firebase Functions can create/update questions
+    match /questions/{questionId} {
+      allow read: if isAuthenticated(); // Anyone can read shared questions
+      allow create, update: if false; // Only server-side functions can write
+      allow delete: if false; // No one can delete questions
+    }
+    
+    // User responses collection - users can read their own responses
+    // Firebase Functions write responses after answer evaluation
+    match /user_responses/{responseId} {
+      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow create, update: if false; // Only server-side functions can write
+      allow delete: if false; // Responses are permanent
+    }
+    
+    // Checkpoint questions cache - for learning path optimization
+    match /checkpoint_questions_cache/{cacheId} {
+      allow read: if isAuthenticated();
+      allow create, update: if false; // Only server-side functions can write
+      allow delete: if false;
+    }
+    
+    // Booking requests - students can create and view their own requests
+    match /booking_requests/{bookingId} {
+      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      allow update, delete: if false; // Only admin/tutors can modify bookings
     }
   }
 }

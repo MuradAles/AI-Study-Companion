@@ -66,9 +66,40 @@ function Practice() {
   const [questionsCompleted, setQuestionsCompleted] = useState(0);
   const [questionsRequired, setQuestionsRequired] = useState(3); // 3 correct answers per checkpoint
 
+  // Question selection view
+  const [viewMode, setViewMode] = useState<'list' | 'solve'>(!checkpointId ? 'list' : 'solve'); // Start with list view unless from checkpoint
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | 'all'>('all');
+  const [selectedTopic, setSelectedTopic] = useState<string>('all');
+  const [showAnswered, setShowAnswered] = useState<boolean>(false);
+
   // Get current user ID from auth
   const { currentUser } = useAuth();
   const userId = currentUser?.uid || '';
+
+  // Flatten all questions for list view with status marking
+  const allQuestionsIncludingAnswered = practiceItems.flatMap(item => 
+    item.questions.map(q => ({
+      ...q,
+      practiceItemId: item.id,
+      sessionId: item.sessionId,
+      status: (item.responses || []).find((r: any) => r.questionId === q.questionId) ? 'answered' : 'pending'
+    }))
+  );
+
+  // Filter by answered/unanswered status
+  const allQuestions = showAnswered 
+    ? allQuestionsIncludingAnswered 
+    : allQuestionsIncludingAnswered.filter(q => q.status === 'pending');
+
+  // Get unique topics from unanswered questions
+  const uniqueTopics = Array.from(new Set(allQuestions.map(q => q.topic)));
+
+  // Filter questions based on selection
+  const filteredQuestions = allQuestions.filter(q => {
+    if (selectedDifficulty !== 'all' && q.difficulty !== selectedDifficulty) return false;
+    if (selectedTopic !== 'all' && q.topic !== selectedTopic) return false;
+    return true;
+  });
 
   useEffect(() => {
     // If coming from learning path, filter by difficulty and subject
@@ -103,6 +134,25 @@ function Practice() {
           // Update item to only include filtered questions
           item.questions = filteredQuestions;
           return true;
+        });
+      } else {
+        // Organize questions by topic and difficulty when not in checkpoint mode
+        items = items.map(item => {
+          // Sort questions by topic first, then by difficulty (easy -> medium -> hard)
+          const sortedQuestions = [...item.questions].sort((a, b) => {
+            // First sort by topic
+            const topicCompare = a.topic.localeCompare(b.topic);
+            if (topicCompare !== 0) return topicCompare;
+            
+            // Then sort by difficulty
+            const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+            return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+          });
+          
+          return {
+            ...item,
+            questions: sortedQuestions
+          };
         });
       }
 
@@ -392,6 +442,242 @@ function Practice() {
   const questionsBeforeCurrent = practiceItems.slice(0, currentItemIndex).reduce((sum, item) => sum + item.questions.length, 0);
   const currentQuestionNumber = questionsBeforeCurrent + currentQuestionIndex + 1;
 
+  // Handle selecting a question from the list
+  const handleSelectQuestion = (questionId: string, practiceItemId: string) => {
+    const item = practiceItems.find(i => i.id === practiceItemId);
+    if (!item) return;
+    
+    const questionIndex = item.questions.findIndex(q => q.questionId === questionId);
+    if (questionIndex === -1) return;
+    
+    setCurrentItem(item);
+    setCurrentQuestionIndex(questionIndex);
+    setViewMode('solve');
+    setAnswer('');
+    setFeedback(null);
+    setShowHint(false);
+  };
+
+  // If in list view and not from checkpoint, show question list
+  if (viewMode === 'list' && !checkpointId) {
+    return (
+      <div className="practice">
+        <header className="practice-header">
+          <h1>AI Study Companion</h1>
+          <Navigation />
+        </header>
+        <main className="practice-main">
+          <div className="practice-container">
+            <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0 }}>Practice Questions</h2>
+              <button
+                onClick={() => {
+                  if (practiceItems.length > 0) {
+                    setCurrentItem(practiceItems[0]);
+                    setCurrentQuestionIndex(0);
+                    setViewMode('solve');
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Random Question
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', marginRight: '10px' }}>Status:</label>
+                <select 
+                  value={showAnswered ? 'all' : 'pending'}
+                  onChange={(e) => setShowAnswered(e.target.value === 'all')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #e0e0e0',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="pending">Unanswered Only</option>
+                  <option value="all">All Questions</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', marginRight: '10px' }}>Difficulty:</label>
+                <select 
+                  value={selectedDifficulty}
+                  onChange={(e) => setSelectedDifficulty(e.target.value as any)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #e0e0e0',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="all">All</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '14px', fontWeight: '500', marginRight: '10px' }}>Topic:</label>
+                <select 
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #e0e0e0',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="all">All Topics</option>
+                  {uniqueTopics.map(topic => (
+                    <option key={topic} value={topic}>{topic}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ marginLeft: 'auto', fontSize: '14px', color: '#666' }}>
+                Showing {filteredQuestions.length} of {allQuestions.length} questions
+              </div>
+            </div>
+
+            {/* Question List Table */}
+            {filteredQuestions.length > 0 ? (
+              <div style={{
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                border: '1px solid #e0e0e0',
+                overflow: 'hidden'
+              }}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse'
+                }}>
+                  <thead>
+                    <tr style={{
+                      backgroundColor: '#f8f9fa',
+                      borderBottom: '2px solid #e0e0e0'
+                    }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600' }}>Status</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600' }}>Question</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600' }}>Topic</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '14px', fontWeight: '600' }}>Difficulty</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600' }}>Points</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: '600' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredQuestions.map((question, index) => {
+                      const difficultyColor = question.difficulty === 'easy' ? '#4caf50' : question.difficulty === 'medium' ? '#ff9800' : '#f44336';
+                      
+                      return (
+                        <tr 
+                          key={question.questionId}
+                          style={{
+                            backgroundColor: index % 2 === 0 ? '#fff' : '#fafafa',
+                            borderBottom: '1px solid #e0e0e0'
+                          }}
+                        >
+                          <td style={{ padding: '16px' }}>
+                            {question.status === 'answered' ? (
+                              <span style={{
+                                padding: '4px 10px',
+                                backgroundColor: '#4caf5020',
+                                color: '#4caf50',
+                                borderRadius: '12px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}>
+                                ✓ Answered
+                              </span>
+                            ) : (
+                              <span style={{
+                                padding: '4px 10px',
+                                backgroundColor: '#ff980020',
+                                color: '#ff9800',
+                                borderRadius: '12px',
+                                fontSize: '12px',
+                                fontWeight: '500'
+                              }}>
+                                Pending
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '16px', fontSize: '14px', maxWidth: '400px' }}>
+                            {question.text.length > 80 ? question.text.substring(0, 80) + '...' : question.text}
+                          </td>
+                          <td style={{ padding: '16px', fontSize: '14px' }}>
+                            <span style={{
+                              padding: '4px 10px',
+                              backgroundColor: '#e8f0fe',
+                              color: '#667eea',
+                              borderRadius: '12px',
+                              fontSize: '12px'
+                            }}>
+                              {question.topic}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px', fontSize: '14px' }}>
+                            <span style={{
+                              padding: '4px 10px',
+                              backgroundColor: difficultyColor + '20',
+                              color: difficultyColor,
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              textTransform: 'capitalize'
+                            }}>
+                              {question.difficulty}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: '500' }}>
+                            {question.pointsValue}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <button
+                              onClick={() => handleSelectQuestion(question.questionId, question.practiceItemId)}
+                              style={{
+                                padding: '6px 14px',
+                                backgroundColor: '#667eea',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '500'
+                              }}
+                            >
+                              {question.status === 'answered' ? 'Review' : 'Solve'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
+                No questions match your filters. Try selecting different options.
+              </p>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="practice">
       <header className="practice-header">
@@ -400,6 +686,28 @@ function Practice() {
       </header>
       <main className="practice-main">
         <div className="practice-container">
+          {/* Back to List button (only show if not from checkpoint) */}
+          {!checkpointId && (
+            <button
+              onClick={() => setViewMode('list')}
+              style={{
+                marginBottom: '20px',
+                padding: '8px 16px',
+                backgroundColor: '#f0f0f0',
+                color: '#333',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              ← Back to Question List
+            </button>
+          )}
+          
           {checkpointId && (
             <div className="checkpoint-progress-bar">
               <div className="progress-info">

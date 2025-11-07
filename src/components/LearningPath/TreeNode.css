@@ -1,0 +1,185 @@
+.tree-node {
+  position: relative;
+  margin-left: 20px;
+}
+
+.tree-node.level-0 {
+  margin-left: 0;
+}
+
+.tree-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.tree-node-header:hover {
+  background-color: #f5f5f5;
+}
+
+.expand-icon {
+  width: 16px;
+  font-size: 12px;
+  color: #666;
+  transition: transform 0.2s ease;
+}
+
+.node-icon {
+  font-size: 18px;
+}
+
+.node-label {
+  font-weight: 500;
+  flex-grow: 1;
+}
+
+.node-progress {
+  font-size: 12px;
+  padding: 2px 8px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.node-stats {
+  font-size: 12px;
+  color: #666;
+}
+
+.node-date {
+  font-size: 11px;
+  color: #999;
+}
+
+.tree-node-children {
+  margin-top: 8px;
+  padding-left: 24px;
+  border-left: 2px solid #e0e0e0;
+  position: relative;
+}
+
+.tree-node-children::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #667eea 0%, #e0e0e0 100%);
+  opacity: 0.5;
+}
+
+/* Type-specific styles */
+.tree-node-start .node-label {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+
+.tree-node-subject .node-label {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.tree-node-tutor {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  padding: 4px;
+}
+
+.tree-node-tutor .node-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.tree-node-session {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.tree-node-session .node-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.tree-node-checkpoint {
+  display: inline-block;
+  margin: 4px;
+}
+
+.tree-node-checkpoint .tree-node-header {
+  padding: 6px 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  background-color: #fff;
+  min-width: 80px;
+  justify-content: center;
+}
+
+.tree-node-checkpoint .node-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tree-node-checkpoint.completed .tree-node-header {
+  border-color: #4caf50;
+  background-color: #f1f8f4;
+}
+
+.tree-node-checkpoint.unlocked .tree-node-header {
+  border-color: #667eea;
+  background-color: #f0f4ff;
+  cursor: pointer;
+}
+
+.tree-node-checkpoint.unlocked .tree-node-header:hover {
+  background-color: #e3ebff;
+  transform: scale(1.05);
+}
+
+.tree-node-checkpoint.locked .tree-node-header {
+  border-color: #e0e0e0;
+  background-color: #f9f9f9;
+  opacity: 0.6;
+}
+
+/* Checkpoint container - horizontal layout */
+.tree-node-session .tree-node-children {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border-left: none;
+  background-color: #fafafa;
+  border-radius: 4px;
+}
+
+.tree-node-session .tree-node-children::before {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tree-node {
+    margin-left: 12px;
+  }
+  
+  .tree-node-children {
+    padding-left: 16px;
+  }
+  
+  .node-label {
+    font-size: 14px;
+  }
+}
+

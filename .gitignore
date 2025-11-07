@@ -31,13 +31,13 @@ node_modules/
 .vscode
 # OS specific
 
-# Task files
-# tasks.json
-# tasks/
-
 # Firebase
 .firebase/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
 *.cache 
+
+# Task files
+# tasks.json
+# tasks/ 

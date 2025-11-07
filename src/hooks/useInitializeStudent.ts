@@ -25,18 +25,39 @@ export function useInitializeStudent() {
           createdAt: Timestamp.now(),
           goals: [
             {
-              goalId: 'goal-1',
+              goalId: 'goal-mathematics',
               subject: 'Mathematics',
               status: 'active',
               sessionsCompleted: 0,
               targetSessions: 10,
             },
             {
-              goalId: 'goal-2',
-              subject: 'Science',
+              goalId: 'goal-sat-math',
+              subject: 'SAT Math',
               status: 'active',
               sessionsCompleted: 0,
               targetSessions: 8,
+            },
+            {
+              goalId: 'goal-sat-reading',
+              subject: 'SAT Reading',
+              status: 'active',
+              sessionsCompleted: 0,
+              targetSessions: 8,
+            },
+            {
+              goalId: 'goal-geometry',
+              subject: 'Geometry',
+              status: 'active',
+              sessionsCompleted: 0,
+              targetSessions: 10,
+            },
+            {
+              goalId: 'goal-algebra',
+              subject: 'Algebra',
+              status: 'active',
+              sessionsCompleted: 0,
+              targetSessions: 10,
             },
           ],
           gamification: {

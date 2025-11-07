@@ -53,6 +53,7 @@ function LearningPath() {
   const [showDifficultyModal, setShowDifficultyModal] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<Checkpoint | null>(null);
   const [loading, setLoading] = useState(true);
+  const [transitioning, setTransitioning] = useState(false);
   const [showSuccessCelebration, setShowSuccessCelebration] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard' | null>(null);
@@ -101,11 +102,17 @@ function LearningPath() {
       setLearningPath(null);
       setHeroPosition(null);
       setLoading(false);
+      setTransitioning(false);
       return;
     }
 
     try {
+      // Only show transitioning if we already have a path (smooth transition)
+      if (learningPath) {
+        setTransitioning(true);
+      } else {
       setLoading(true);
+      }
       
       // Query sessions for this subject
       const sessionsQuery = query(
@@ -210,12 +217,6 @@ function LearningPath() {
         // Checkpoint is completed if 3 correct answers achieved
         const isCompleted = correctCount >= 3;
         
-        // Debug logging
-        console.log(`Checkpoint ${index} (cp-${index}): ${correctCount}/3 correct answers, completed: ${isCompleted}`, {
-          sessionIds: allSessionIds,
-          practiceItemsCount: checkpointPracticeItems.length,
-          countedQuestions: countedQuestionIds.size
-        });
         
         // Checkpoint is unlocked if it's the first one (0), or previous is completed
         const isUnlocked = index === 0 || previousCompleted;
@@ -282,14 +283,24 @@ function LearningPath() {
       setLearningPath(builtPath);
       
       if (currentCheckpoint) {
-        // Animate hero movement if checkpoint changed
-        if (previousCheckpointId && previousCheckpointId !== currentCheckpoint.id) {
+        // Smoothly animate hero movement when checkpoint or subject changes
+        const previousPosition = heroPosition;
+        const newPosition = currentCheckpoint.position;
+        
+        // If position changed (different checkpoint or subject), animate
+        if (previousPosition && (
+          previousPosition.x !== newPosition.x || 
+          previousPosition.y !== newPosition.y ||
+          previousCheckpointId !== currentCheckpoint.id
+        )) {
           setHeroAnimating(true);
+          // Animate to new position smoothly
           setTimeout(() => {
             setHeroAnimating(false);
-          }, 1000);
+          }, 800);
         }
-        setHeroPosition(currentCheckpoint.position);
+        
+        setHeroPosition(newPosition);
         setPreviousCheckpointId(currentCheckpoint.id);
       }
       
@@ -297,11 +308,13 @@ function LearningPath() {
       // Success celebration is now handled in handleQuestionComplete
       
       setLoading(false);
+      setTransitioning(false);
     } catch (error) {
       console.error('Error building learning path from sessions:', error);
       setLearningPath(null);
       setHeroPosition(null);
       setLoading(false);
+      setTransitioning(false);
     }
   };
 
@@ -326,10 +339,11 @@ function LearningPath() {
       return;
     }
 
+    // Allow clicking completed checkpoints to review answers
     if (checkpoint.completed) {
-      setErrorMessage('Checkpoint already completed!');
-      setTimeout(() => setErrorMessage(null), 3000);
-      return;
+      setErrorMessage('📚 Viewing completed checkpoint - You can practice again or review your progress!');
+      setTimeout(() => setErrorMessage(null), 4000);
+      // Continue to allow practice on completed checkpoints
     }
 
     // All checkpoints use all sessions, so this check is no longer needed
@@ -414,7 +428,10 @@ function LearningPath() {
 
   return (
     <div className="learning-path">
+      <header className="learning-path-header">
+        <h1>AI Study Companion</h1>
       <Navigation />
+      </header>
       
       {/* Error Message Banner */}
       {errorMessage && (
@@ -425,7 +442,7 @@ function LearningPath() {
         </div>
       )}
       
-      {/* Top Info Bar */}
+      {/* Top Info Bar - Only relevant info */}
       <div className="path-info-bar">
         <div className="info-section">
           <span className="info-label">Subject:</span>
@@ -438,14 +455,6 @@ function LearningPath() {
             {learningPath?.checkpoints.length || 0}
           </span>
         </div>
-        <div className="info-section">
-          <span className="info-label">Level:</span>
-          <span className="info-value">5</span>
-        </div>
-        <div className="info-section">
-          <span className="info-label">Points:</span>
-          <span className="info-value">1,250</span>
-        </div>
       </div>
 
       {/* Subject Selector */}
@@ -454,17 +463,28 @@ function LearningPath() {
           {availableSubjects.map((subject) => (
             <button
               key={subject}
-              className={selectedSubject === subject ? 'active' : ''}
+              className={`subject-button ${selectedSubject === subject ? 'active' : ''}`}
               onClick={() => setSelectedSubject(subject)}
             >
               {subject}
             </button>
           ))}
+          <button
+            className="subject-button"
+            onClick={() => {
+              setLoading(true);
+              fetchSessionsAndBuildPath();
+            }}
+            disabled={loading || transitioning}
+            title="Refresh learning path from latest sessions"
+          >
+            🔄 Refresh
+          </button>
         </div>
       )}
 
       {/* Map Container */}
-      {loading ? (
+      {loading && !learningPath ? (
         <div className="map-loading">Loading learning path...</div>
       ) : !selectedSubject ? (
         <div className="map-loading">
@@ -481,8 +501,8 @@ function LearningPath() {
           <p>Complete tutor sessions to create learning paths automatically!</p>
         </div>
       ) : (
-        <div className="map-container">
-          <svg className="map-svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid meet">
+        <div className={`map-container ${transitioning ? 'transitioning' : ''}`}>
+          <svg className={`map-svg ${transitioning ? 'transitioning' : ''}`} viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid meet">
             {/* Draw paths between checkpoints */}
             {learningPath?.checkpoints.flatMap((checkpoint) =>
               checkpoint.connections.map((connectionId) => {
@@ -557,11 +577,11 @@ function LearningPath() {
               <circle
                 cx={checkpoint.position.x}
                 cy={checkpoint.position.y}
-                r={checkpoint.id === learningPath.currentCheckpointId ? 25 : 20}
+                r={22}
                 fill={getNodeColor(checkpoint)}
-                stroke="#fff"
-                strokeWidth="3"
-                className={`checkpoint-node ${checkpoint.unlocked ? 'unlocked' : 'locked'} ${checkpoint.completed ? 'completed' : ''}`}
+                stroke={checkpoint.id === learningPath.currentCheckpointId ? '#667eea' : '#fff'}
+                strokeWidth={checkpoint.id === learningPath.currentCheckpointId ? '5' : '3'}
+                className={`checkpoint-node ${checkpoint.unlocked ? 'unlocked' : 'locked'} ${checkpoint.completed ? 'completed' : ''} ${checkpoint.id === learningPath.currentCheckpointId ? 'current' : ''}`}
                 onClick={() => handleCheckpointClick(checkpoint)}
                 style={{ cursor: checkpoint.unlocked ? 'pointer' : 'not-allowed' }}
               />
@@ -589,12 +609,32 @@ function LearningPath() {
                 {checkpoint.id === 'cp-success' ? 'SUCCESS' : checkpoint.order}
               </text>
               
-              {/* Hero character at current checkpoint */}
-              {checkpoint.id === learningPath.currentCheckpointId && heroPosition && (
-                <g className={`hero-character ${heroAnimating ? 'animating' : ''}`}>
+              {/* Correct answers count for completed checkpoints */}
+              {checkpoint.completed && checkpoint.correctAnswers !== undefined && (
+                <text
+                  x={checkpoint.position.x}
+                  y={checkpoint.position.y - 35}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fill="#4caf50"
+                  fontWeight="bold"
+                  pointerEvents="none"
+                >
+                  ✓ {checkpoint.correctAnswers}/3
+                </text>
+              )}
+            </g>
+          ))}
+
+          {/* Hero character - render once outside loop */}
+          {learningPath && heroPosition && (
+            <g 
+              className={`hero-character ${heroAnimating ? 'animating' : ''}`}
+              transform={`translate(${heroPosition.x}, ${heroPosition.y - 35})`}
+            >
                   <circle
-                    cx={heroPosition.x}
-                    cy={heroPosition.y - 35}
+                cx={0}
+                cy={0}
                     r="12"
                     fill="#667eea"
                     stroke="#fff"
@@ -602,8 +642,8 @@ function LearningPath() {
                     className="hero-circle"
                   />
                   <text
-                    x={heroPosition.x}
-                    y={heroPosition.y - 32}
+                x={0}
+                y={3}
                     textAnchor="middle"
                     fontSize="16"
                     fill="#fff"
@@ -613,17 +653,7 @@ function LearningPath() {
                   </text>
                 </g>
               )}
-            </g>
-          ))}
         </svg>
-      </div>
-      )}
-
-      {/* Current Checkpoint Info */}
-      {learningPath && (
-        <div className="current-checkpoint-info">
-          <h3>Current Checkpoint: {learningPath.checkpoints.find(cp => cp.id === learningPath.currentCheckpointId)?.order || 1}</h3>
-          <p>Click on the checkpoint to choose difficulty and start practicing!</p>
         </div>
       )}
 

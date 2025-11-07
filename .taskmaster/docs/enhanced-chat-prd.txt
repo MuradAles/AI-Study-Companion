@@ -1,0 +1,132 @@
+# Enhanced AI Study Companion Chat System - PRD
+
+## Project Overview
+Enhance the existing chat system to provide strategic teaching, in-chat practice questions, retention features, and booking nudges. The chat should guide students through any subject using Socratic-style questioning while being helpful for general information requests.
+
+## Core Requirements
+
+### 1. Enhanced Teaching Strategy (Universal)
+- Chat uses strategic questioning for ANY subject (not just math)
+- When student asks "Can you help me understand [topic]?" → Ask "What do you already know about [topic]?"
+- Guide through questions for problem-solving
+- Provide direct helpful answers for general information requests
+- Reference specific moments from past tutoring sessions
+- Works for Chemistry, SAT, English, Math, any subject the student has studied
+
+### 2. In-Chat Practice Questions
+- Student can practice directly in chat (no need to go to Practice tab)
+- Generate questions using existing OpenAI question generation function
+- Generate DIFFERENT questions on SAME topics from their sessions (not similar to previous practice)
+- Student answers in chat
+- AI validates answers and provides guidance
+- After 3 questions answered → Suggest difficulty level (easy/medium/hard)
+- Track wrong answers for struggle detection
+
+### 3. Cross-Sell After Goal Completion
+- When student completes a goal (e.g., "SAT Math" status = completed)
+- After student answers 3 practice questions → Suggest related subjects
+- Examples:
+  * SAT Math complete → Suggest College Essays, AP Calculus, SAT Reading
+  * Chemistry complete → Suggest Biology, Physics, Medicine
+- Ask: "Want to explore [Subject]? Or continue with more [CurrentSubject] questions?"
+
+### 4. Struggle Detection & Booking Nudges
+- Track consecutive wrong answers
+- If student gets 2 wrong answers in a row → Flag as struggling
+- If student asks many "how do I solve this?" questions → Flag as struggling
+- When struggling detected → Suggest booking a tutor session
+- Message tone: Encouraging (Option A): "You're working hard on this! A tutor could help you break through. Want to book a session?"
+- Also suggest booking after practice sessions: "Need more support? Your tutor [TutorName] is available!"
+
+### 5. Session-Based Context
+- Chat can reference specific moments from past sessions
+- Example: "I remember in your Chemistry session last Tuesday, you had trouble with balancing equations. Want to work through one together?"
+- Use session AI analysis data (topics, struggles, breakthroughs)
+- Personalize responses based on student's session history
+
+### 6. Retention Features
+- Detect students with <3 sessions in first week → Suggest booking
+- After goal completion → Surface practice questions for that subject first, then cross-sell
+- Track engagement patterns and proactively suggest next steps
+
+## Technical Implementation
+
+### Backend Changes (functions/src/)
+1. **Update Chat Function** (`index.ts: generateChatResponseFunction`)
+   - Remove Socratic mode switching
+   - Always use enhanced strategic teaching approach
+   - Fetch richer student context (goals, sessions, struggles)
+   - Add practice question flow
+   - Add struggle tracking
+   - Add booking nudge logic
+
+2. **Enhanced Context Fetching**
+   - Fetch student goals with completion status
+   - Fetch recent sessions with AI analysis
+   - Fetch session count and timing
+   - Fetch cross-sell suggestions based on completed goals
+
+3. **Practice Question Flow**
+   - Use existing `generateSimilarQuestionsAI` or `generatePracticeQuestions` function
+   - Generate NEW questions (not similar) based on session topics
+   - Track answers and validate
+   - Return results to chat
+
+4. **Struggle Detection System**
+   - Track consecutive wrong answers in conversation state
+   - Implement "2 wrong in a row" detection
+   - Store struggle flags in conversation metadata
+
+### Frontend Changes (src/components/Chat/)
+1. **Remove Socratic Mode UI**
+   - Remove mode switching logic
+   - Remove purple Socratic banner
+   - Chat is always in strategic teaching mode
+
+2. **Add Practice Question UI**
+   - Display questions inline in chat
+   - Add answer input
+   - Show validation results
+   - Track progress (e.g., "Question 1/3")
+
+3. **Add Cross-Sell Suggestions**
+   - Show subject suggestions after goal completion
+   - Show after 3 questions answered
+   - Make suggestions clickable/interactive
+
+4. **Add Booking Nudge UI**
+   - Show booking suggestion when struggling detected
+   - Show "Book a session" button/link
+   - Track dismissals
+
+### Data Flow
+```
+User Message → Fetch Context (goals, sessions, struggles) → 
+Generate Response (strategic teaching) →
+Check if practice requested → Generate question →
+Track answer → Validate → Check struggle pattern →
+Trigger booking nudge if needed →
+Check goal completion → Suggest cross-sell if applicable
+```
+
+## Success Criteria
+1. Chat provides strategic teaching for any subject
+2. Students can practice questions directly in chat
+3. Cross-sell suggestions appear after goal completion and 3 questions
+4. Booking nudges appear when student struggles (2 wrong in a row)
+5. Chat references specific session moments
+6. Questions generated are DIFFERENT from previous practice (same topic)
+
+## Out of Scope
+- Deep mode switching (removed)
+- Manual difficulty selection before practicing
+- Practice question history tracking (separate from shared practice)
+- Multi-session chat conversations (each chat is independent)
+
+## Notes
+- Use existing OpenAI question generation functions
+- Use existing cross-sell mapping (crosssell.ts)
+- Use existing retention detection logic (retention.ts)
+- Random difficulty assignment after first 3 questions
+- Encouraging tone for all nudges
+
