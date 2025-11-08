@@ -134,7 +134,7 @@ Return ONLY a JSON object:
       },
     ],
     {
-      model: 'gpt-4',
+      model: 'gpt-4o',
       temperature: 0.1,
       maxTokens: 200,
     }
@@ -174,7 +174,7 @@ Return ONLY the number, nothing else.`;
       },
     ],
     {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o',
       temperature: 0,
       maxTokens: 50,
     }
@@ -204,7 +204,7 @@ Return ONLY the value of x (e.g., "x = 5"), nothing else.`;
       },
     ],
     {
-      model: 'gpt-4',
+      model: 'gpt-4o',
       temperature: 0,
       maxTokens: 50,
     }
@@ -239,7 +239,7 @@ Remember: NEVER give direct answers. Guide through questions. Validate ALL stude
       })),
     ],
     {
-      model: 'gpt-4',
+      model: 'gpt-4o',
       temperature: 0.7,
       maxTokens: 200,
     }
@@ -289,7 +289,7 @@ Remember: NEVER give direct answers. Guide through questions. Be friendly and en
   ];
 
   const response = await callOpenAI(messages, {
-    model: 'gpt-4',
+    model: 'gpt-4o',
     temperature: 0.7,
     maxTokens: 300,
   });

@@ -35,6 +35,7 @@ function SessionDetail() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [momentsExpanded, setMomentsExpanded] = useState(false);
 
   useEffect(() => {
     if (!sessionId || !currentUser) return;
@@ -110,6 +111,48 @@ function SessionDetail() {
   });
 
   const analysis = session.aiAnalysis;
+
+  // Parse transcript into messages
+  const parseTranscript = (transcript: string, tutorName: string) => {
+    const lines = transcript.split('\n').filter(line => line.trim());
+    const messages: Array<{ speaker: 'tutor' | 'student'; text: string }> = [];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+      
+      // Check for common transcript patterns
+      const tutorPattern = new RegExp(`^(${tutorName}|Tutor|Teacher|Instructor):\\s*(.+)`, 'i');
+      const studentPattern = /^(Student|You|User):\s*(.+)/i;
+      
+      if (tutorPattern.test(trimmedLine)) {
+        const match = trimmedLine.match(tutorPattern);
+        if (match && match[2]) {
+          messages.push({ speaker: 'tutor', text: match[2].trim() });
+        }
+      } else if (studentPattern.test(trimmedLine)) {
+        const match = trimmedLine.match(studentPattern);
+        if (match && match[2]) {
+          messages.push({ speaker: 'student', text: match[2].trim() });
+        }
+      } else {
+        // If no pattern matches, try to infer from context
+        // If last message was from tutor, this might be from student, and vice versa
+        if (messages.length > 0) {
+          const lastSpeaker = messages[messages.length - 1].speaker;
+          messages.push({ 
+            speaker: lastSpeaker === 'tutor' ? 'student' : 'tutor', 
+            text: trimmedLine 
+          });
+        } else {
+          // First message defaults to tutor
+          messages.push({ speaker: 'tutor', text: trimmedLine });
+        }
+      }
+    }
+    
+    return messages;
+  };
 
   return (
     <div className="session-detail">
@@ -192,21 +235,37 @@ function SessionDetail() {
           {analysis?.keyMoments && analysis.keyMoments.length > 0 && (
             <div className="analysis-card moments-card">
               <h2>🔑 Key Moments</h2>
-              <div className="moments-list">
-                {analysis.keyMoments.map((moment, index) => (
-                  <div key={index} className={`moment-item ${moment.type}`}>
-                    <span className="moment-icon">
-                      {moment.type === 'breakthrough' ? '🎉' :
-                       moment.type === 'confusion' ? '❓' :
-                       moment.type === 'question' ? '🤔' : '💡'}
-                    </span>
-                    <div className="moment-content">
-                      <span className="moment-type">{moment.type}</span>
-                      <p>{moment.note}</p>
+              <div className={`moments-grid ${momentsExpanded ? 'expanded' : ''}`}>
+                {analysis.keyMoments
+                  .slice(0, momentsExpanded ? analysis.keyMoments.length : 4)
+                  .map((moment, index) => (
+                    <div 
+                      key={index} 
+                      className={`moment-item ${moment.type}`}
+                      style={{ 
+                        animationDelay: momentsExpanded && index >= 4 ? `${(index - 4) * 0.1}s` : '0s'
+                      }}
+                    >
+                      <span className="moment-icon">
+                        {moment.type === 'breakthrough' ? '🎉' :
+                         moment.type === 'confusion' ? '❓' :
+                         moment.type === 'question' ? '🤔' : '💡'}
+                      </span>
+                      <div className="moment-content">
+                        <span className="moment-type">{moment.type}</span>
+                        <p>{moment.note}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
+              {analysis.keyMoments.length > 4 && (
+                <button 
+                  className="expand-moments-btn"
+                  onClick={() => setMomentsExpanded(!momentsExpanded)}
+                >
+                  {momentsExpanded ? 'Show Less' : `Show All (${analysis.keyMoments.length})`}
+                </button>
+              )}
             </div>
           )}
 
@@ -228,10 +287,20 @@ function SessionDetail() {
           <div className="analysis-card transcript-card">
             <h2>📝 Session Transcript</h2>
             <div className="transcript-content">
-              {session.transcript.split('\n').map((line, index) => (
-                <p key={index} className="transcript-line">
-                  {line}
-                </p>
+              {parseTranscript(session.transcript, session.tutorName).map((message, index) => (
+                <div 
+                  key={index} 
+                  className={`transcript-message ${message.speaker === 'tutor' ? 'tutor-message' : 'student-message'}`}
+                >
+                  <div className="message-content">
+                    <div className="message-header">
+                      <span className="speaker-name">
+                        {message.speaker === 'tutor' ? session.tutorName : 'You'}
+                      </span>
+                    </div>
+                    <p className="message-text">{message.text}</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

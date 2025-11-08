@@ -7,7 +7,7 @@ Tutoring Session (External)
     ↓
 Firebase Functions (processTranscript, generateQuestions, evaluateAnswer, checkStudentHealth)
     ↓
-Firestore Database (students, sessions, practice_items, conversations, notifications)
+Firestore Database (students, sessions, questions, conversations, notifications)
     ↓
 React Web Application (Dashboard, Practice, Chat, Progress, Gamification)
 ```
@@ -19,9 +19,11 @@ React Web Application (Dashboard, Practice, Chat, Progress, Gamification)
 **Firestore Triggers → Functions → Data Updates**
 
 - Session document created → `processTranscript()` triggered
-- Session document updated with `aiAnalysis` → `generateQuestions()` triggered
+- Session document updated with `aiAnalysis` → `generateQuestions()` triggered (creates shared questions)
 - Scheduled daily → `checkStudentHealth()` runs
-- User action → `evaluateAnswer()` callable function
+- User action → `evaluateAnswer()` callable function (for shared questions)
+- User chat message → `generateChatResponseFunction()` callable
+- Goal status change → `onGoalCompletion()` triggered
 
 **Benefits:**
 - Automatic processing without manual intervention
@@ -34,11 +36,12 @@ React Web Application (Dashboard, Practice, Chat, Progress, Gamification)
 
 Components use Firestore's `onSnapshot` listeners for real-time updates:
 - `useStudent()` hook listens to student document changes
-- `usePracticeItems()` hook listens to practice_items collection queries
+- `usePracticeItems()` hook listens to questions collection queries
+- Chat component listens to conversation document updates
 - Gamification updates reflect immediately in UI
 
 **Pattern:**
-```javascript
+```typescript
 useEffect(() => {
   const unsubscribe = onSnapshot(doc(db, 'students', studentId), (doc) => {
     setStudent({ id: doc.id, ...doc.data() });
@@ -54,17 +57,54 @@ useEffect(() => {
 1. Raw transcript uploaded to Firestore
 2. Function analyzes with OpenAI API
 3. Extracted data structured in `aiAnalysis` object
-4. Questions generated based on analysis
-5. Practice items scheduled for next day
+4. Questions generated based on analysis → Added to shared `questions` collection
+5. Practice items scheduled for next day (from shared pool)
 6. Student interacts with questions
 7. Answers evaluated with AI feedback
+8. Gamification updated
 
 **Separation of Concerns:**
 - Analysis happens server-side (Firebase Functions)
 - Questions stored in Firestore for client access
 - Evaluation happens on-demand via callable function
+- Shared question pool allows all students to benefit
 
-### 4. Gamification State Management
+### 4. Chat System Architecture
+
+**Conversation Flow:**
+
+1. **Student sends message** → `generateChatResponseFunction()` called
+2. **Context loading:**
+   - Loads student's goals, recent sessions (last 5), practice history
+   - Optionally filters by subject if detected in first message
+3. **Intent detection:**
+   - Checks for practice keywords ("practice", "solve", "example", "question")
+   - If practice intent → generates new question
+4. **Response generation:**
+   - Uses OpenAI with session context
+   - References specific moments from sessions
+   - Provides clarification-focused answers
+5. **Practice question (if requested):**
+   - Always generates NEW question (never from practice_items)
+   - Multiple choice format (4 options A-D)
+   - Based on session topics
+6. **Answer validation:**
+   - `validateChatAnswer()` function
+   - Visual feedback (sparkles if correct)
+   - NO gamification points/badges/levels
+7. **Cross-sell suggestions:**
+   - After 3 questions answered in conversation
+   - Based on actual session history
+   - Shows related subjects
+
+**Conversation Persistence:**
+- Conversations stored in `conversations/{conversationId}` collection
+- Messages array with full history
+- Loaded on component mount
+- Real-time updates via Firestore listener
+- Pattern similar to chat.dpg (Athena-Math repo)
+
+### 5. Gamification State Management
 
 **Centralized in Student Document**
 
@@ -80,7 +120,39 @@ All gamification data stored in `students/{studentId}/gamification`:
 - Badges checked against triggers (server-side)
 - Client displays calculated values
 
-### 5. Notification System
+**Important:** Chat questions do NOT update gamification - only practice page questions do.
+
+### 6. Dual Practice Question Systems
+
+**System 1: Shared Questions Pool (`questions` collection)**
+- Questions generated from sessions → Added to `questions` collection
+- All students can access shared questions
+- Questions include attribution (createdBy, createdByName)
+- Statistics tracked (timesAttempted, timesCorrect)
+- Used by `PracticeShared` component (`/practice` route)
+- LeetCode-style interface with filtering and search
+- Questions are permanent and visible to all authenticated users
+
+**System 2: Per-Student Practice Items (`practice_items` collection)**
+- Per-student collection with scheduled questions
+- Questions generated per session, scheduled for next day
+- Used by `Practice` component (`/practice-checkpoint` route)
+- Checkpoint-based system (3 correct answers per checkpoint)
+- Questions organized by session and topic
+- Status tracked: `pending` → `completed` → `skipped`
+
+**Chat Practice Questions:**
+- Always generates NEW questions (never from either pool)
+- Multiple choice format (4 options A-D)
+- Based on student's actual session topics
+- Visual feedback only, NO gamification
+
+**Benefits:**
+- Shared pool: Students benefit from others' sessions, question diversity increases
+- Per-student items: Personalized scheduling, checkpoint progression
+- Chat questions: Always fresh, context-aware, no gamification conflicts
+
+### 7. Notification System
 
 **Scheduled Function → Notification Document → FCM → Client**
 
@@ -98,33 +170,48 @@ All gamification data stored in `students/{studentId}/gamification`:
 - `practice_reminder`: Daily practice goals
 - `achievement`: Badge/level up notifications
 
-### 6. Cross-Sell Intelligence
+### 8. Cross-Sell Intelligence
 
-**Goal Completion → Subject Mapping → Suggestion**
+**Two Implementation Approaches:**
 
-Mapping logic:
-```javascript
-const CROSS_SELL_MAP = {
-  "SAT Math": ["College Essays", "AP Calculus", "SAT Reading"],
-  "Chemistry": ["Physics", "Biology", "AP Chemistry"],
+**Approach 1: Goal Completion Cross-Sell (`crosssell.ts`)**
+- Uses hardcoded `CROSS_SELL_MAP` for subject relationships
+- Triggered when goal status changes to 'completed'
+- Function: `processGoalCompletion()` → `getCrossSellSuggestions()`
+- Filters out subjects student already has as goals
+- Sends FCM notification and creates notification document
+- Updates student document with `crossSellSuggestions` array
+
+**Approach 2: Chat Session-Based Cross-Sell (`chat.ts`)**
+- Uses `getSessionBasedSuggestions()` which analyzes actual session history
+- Identifies completed subjects from student's sessions
+- Maps to related subjects using `subjectRelations` mapping
+- Shows in chat after 3 questions answered
+- More personalized based on actual learning path
+
+**Subject Relationships:**
+```typescript
+// Hardcoded mapping (crosssell.ts)
+const CROSS_SELL_MAP: Record<string, string[]> = {
+  'SAT Math': ['College Essays', 'AP Calculus', 'SAT Reading'],
+  // ... more mappings
+};
+
+// Session-based mapping (chat.ts)
+const subjectRelations: Record<string, string[]> = {
+  'Mathematics': ['Physics', 'Statistics', 'Computer Science'],
   // ... more mappings
 };
 ```
 
-**Flow:**
-1. Goal marked as "complete"
-2. Function detects status change
-3. Looks up subject in cross-sell map
-4. Checks if already notified
-5. Creates notification + in-app banner
-6. Shows in multi-subject progress view
+**Note:** Goal completion uses hardcoded mapping, chat uses session-based analysis. Both filter out existing goals.
 
-### 7. Session Context Integration
+### 9. Session Context Integration
 
 **Chat Responses Reference Actual Sessions**
 
 AI chat companion loads:
-- Last 3 sessions
+- Last 5 sessions (or filtered by subject)
 - Current struggles from `aiAnalysis`
 - Recent practice results
 - Student goals and subjects
@@ -134,15 +221,16 @@ AI chat companion loads:
 - AI references specific session timestamps
 - Can suggest booking tutor if question too complex
 - Tracks conversation history in Firestore
+- Clarification-focused (not general tutoring)
 
-### 8. Practice Scheduling Logic
+### 10. Practice Scheduling Logic
 
 **Session → Next Day → Scheduled Time**
 
 - Questions generated after session analysis
-- `scheduledFor` set to next day at 3pm (15:00)
-- Client queries: `where('scheduledFor', '<=', now)`
-- Questions appear when scheduled time arrives
+- Added to shared `questions` collection
+- Practice page queries: `where('subject', '==', subject)` or similar
+- Questions appear when available
 - Status tracked: `pending` → `completed` → `skipped`
 
 ## Component Relationships
@@ -156,14 +244,16 @@ App
 │   ├── DailyGoals (progress indicator)
 │   ├── PracticeAlert (new questions available)
 │   └── ProgressTracker (multi-subject view)
-├── PracticeInterface
-│   ├── QuestionCard (question display)
+├── PracticeInterface (PracticeShared)
+│   ├── QuestionCard (question display from shared pool)
 │   ├── AnswerInput (text input)
 │   ├── FeedbackDisplay (AI feedback)
 │   └── CelebrationAnimation (achievements)
 ├── ChatInterface
-│   ├── MessageList (conversation history)
+│   ├── ChatList (conversation history)
+│   ├── MessageList (conversation messages)
 │   ├── MessageInput (user input)
+│   ├── PracticeQuestionCard (inline questions)
 │   └── SessionReference (context links)
 └── MultiSubjectProgress
     ├── SubjectCard (per subject)
@@ -178,9 +268,14 @@ App
 Firestore students/{id} → useStudent() hook → Component state → UI
 ```
 
-**Practice Items:**
+**Practice Questions (Shared Pool):**
 ```
-Firestore practice_items (query) → usePracticeItems() hook → Component state → UI
+Firestore questions (query) → usePracticeItems() hook → Component state → UI
+```
+
+**Chat Conversations:**
+```
+Firestore conversations/{id} → Chat component → Real-time listener → UI
 ```
 
 **Gamification:**
@@ -191,28 +286,36 @@ Student document → useGamification() hook → Calculated values → UI
 ## Key Algorithms
 
 ### Level Calculation
-```javascript
-function calculateLevel(points) {
+```typescript
+function calculateLevel(points: number): number {
   const levels = [0, 100, 250, 500, 1000, 2000, 4000, 8000];
   return levels.findIndex(threshold => points < threshold) || 8;
 }
 ```
 
 ### Streak Calculation
-```javascript
-function calculateStreak(lastActivityDate, today) {
-  const daysDiff = (today - lastActivityDate) / (1000 * 60 * 60 * 24);
+```typescript
+function calculateStreak(lastActivityDate: string, today: string): number {
+  const daysDiff = (new Date(today) - new Date(lastActivityDate)) / (1000 * 60 * 60 * 24);
   return daysDiff === 1 ? currentStreak + 1 : 1; // Reset if not consecutive
 }
 ```
 
 ### Badge Checking
-```javascript
-function checkForNewBadges(student, action) {
+```typescript
+function checkForNewBadges(student: Student, action: Action): Badge[] {
   // Check all badge triggers
   // Return array of new badges to award
   // Prevents duplicate awards
 }
+```
+
+### Chat Intent Detection
+```typescript
+const practiceKeywords = ['practice', 'solve', 'example', 'question', 'problem', 'try', 'test'];
+const wantsPractice = practiceKeywords.some(keyword => 
+  message.toLowerCase().includes(keyword)
+);
 ```
 
 ## Security Patterns
@@ -225,6 +328,7 @@ function checkForNewBadges(student, action) {
 ### Data Access
 - Students can only access their own data
 - Queries filtered by `studentId`
+- Conversations isolated per student
 - No cross-student data leakage
 
 ### API Keys
@@ -235,19 +339,22 @@ function checkForNewBadges(student, action) {
 ## Performance Considerations
 
 ### Firestore Queries
-- Indexed queries for `practice_items` collection
+- Indexed queries for `questions` collection
 - Composite indexes for multi-field queries
 - Real-time listeners unsubscribe on unmount
+- Conversation loading optimized with single document fetch
 
 ### AI Processing
 - Functions handle AI calls server-side
 - Results cached in Firestore to avoid re-processing
 - Batch operations where possible
+- Chat context loading optimized (last 5 sessions)
 
 ### Client Optimization
 - React hooks memoize expensive calculations
 - Components lazy-loaded where appropriate
 - Celebration animations use CSS transforms for performance
+- Chat messages rendered efficiently with keys
 
 ## Error Handling Patterns
 
@@ -262,4 +369,25 @@ function checkForNewBadges(student, action) {
 - Loading states during async operations
 - User-friendly error messages
 - Retry mechanisms for failed operations
+- Chat handles missing sessions gracefully
 
+## Chat-Specific Patterns
+
+### Conversation Management
+- One conversation per student (or multiple if needed)
+- Conversation ID can be studentId-based or auto-generated
+- Messages array with full history
+- Real-time sync via Firestore listener
+
+### Practice Question Generation
+- Always generates NEW question
+- Uses `generateSingleQuestion` from openai-handlers
+- Multiple choice format enforced (4 options)
+- Topic extracted from message or uses session topic
+- Different numbers/scenarios each time
+
+### Answer Validation
+- Simple comparison for multiple choice
+- AI-generated feedback for explanation
+- Visual sparkles animation if correct
+- NO gamification updates

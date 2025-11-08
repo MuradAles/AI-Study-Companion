@@ -16,7 +16,7 @@ export const testOpenAIConnection = async () => {
         content: 'Say "Hello" in one word.',
       },
     ], {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o',
       temperature: 0.3,
       maxTokens: 10,
     });
@@ -41,7 +41,7 @@ export const testOpenAIJSON = async () => {
         content: 'Return a JSON object with a "message" field containing "Hello".',
       },
     ], {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o',
       temperature: 0.3,
     });
     

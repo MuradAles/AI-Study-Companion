@@ -6,7 +6,7 @@ import { evaluateAnswer as evaluateAnswerAI } from './openai-handlers';
 import { calculateLevel, isDateConsecutive, checkForNewBadges } from './gamification';
 import { checkStudentHealth as checkStudentHealthHelper, sendBookingNudge, checkAllStudentsHealth } from './retention';
 import { processGoalCompletion } from './crosssell';
-import { createLearningPathFromSession } from './learning-path';
+import { generateChatResponse, generateChatPracticeQuestion } from './chat';
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -123,6 +123,7 @@ export const generateQuestions = functions.firestore
           correctAnswer: question.correctAnswer,
           explanation: question.explanation || question.aiFeedback || '',
           hint: question.hint || '',
+          passage: question.passage || '', // Include passage for reading comprehension questions
           // Attribution
           createdBy: newData.studentId,
           createdByName: studentName,
@@ -321,125 +322,6 @@ export const evaluateAnswer = functions.https.onCall(async (data, context) => {
 });
 
 /**
- * Generate questions on-demand for a checkpoint
- * Now with caching support for instant loading!
- * Callable function from client
- */
-export const generateCheckpointQuestions = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
-
-  const { sessionIds, difficulty, subject, checkpointId } = data;
-  const studentId = context.auth.uid;
-
-  if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
-    throw new functions.https.HttpsError('invalid-argument', 'sessionIds array is required');
-  }
-
-  if (!difficulty || !['easy', 'medium', 'hard'].includes(difficulty)) {
-    throw new functions.https.HttpsError('invalid-argument', 'difficulty must be easy, medium, or hard');
-  }
-
-  try {
-    const db = admin.firestore();
-    
-    // 🚀 CHECK CACHE FIRST for instant loading!
-    if (checkpointId) {
-      const cacheId = `${checkpointId}_${studentId}_${difficulty}`;
-      const cacheDoc = await db.collection('checkpoint_questions_cache').doc(cacheId).get();
-      
-      if (cacheDoc.exists) {
-        const cacheData = cacheDoc.data();
-        console.log(`✅ Cache HIT! Loading questions instantly for ${cacheId}`);
-        return {
-          questions: cacheData?.questions || [],
-          sessionIds: sessionIds,
-          difficulty: difficulty,
-          fromCache: true,
-        };
-      }
-      console.log(`❌ Cache MISS for ${cacheId}, generating...`);
-    }
-    
-    // Get the first session to get analysis data
-    const sessionDoc = await db.collection('sessions').doc(sessionIds[0]).get();
-    
-    if (!sessionDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Session not found');
-    }
-
-    const sessionData = sessionDoc.data();
-    if (!sessionData || !sessionData.aiAnalysis) {
-      throw new functions.https.HttpsError('invalid-argument', 'Session does not have AI analysis');
-    }
-
-    if (sessionData.studentId !== studentId) {
-      throw new functions.https.HttpsError('permission-denied', 'Access denied');
-    }
-
-    // Get session context
-    const sessionContext = {
-      tutorName: sessionData.tutorName || 'Your tutor',
-      subject: subject || sessionData.subject || 'Unknown',
-      sessionDate: sessionData.date ? sessionData.date.toDate().toISOString() : new Date().toISOString(),
-    };
-
-    // Generate 3 questions with the selected difficulty
-    const allQuestions = await generatePracticeQuestions(sessionData.aiAnalysis, sessionContext);
-    
-    // Filter questions by difficulty and take 3
-    const filteredQuestions = allQuestions
-      .filter((q: any) => q.difficulty === difficulty)
-      .slice(0, 3);
-    
-    // If we don't have enough questions of the selected difficulty, generate more
-    if (filteredQuestions.length < 3) {
-      const needed = 3 - filteredQuestions.length;
-      for (let i = 0; i < needed; i++) {
-        const newQuestion = await generateSingleQuestion(
-          sessionData.aiAnalysis,
-          sessionContext,
-          difficulty
-        );
-        filteredQuestions.push(newQuestion);
-      }
-    }
-
-    const finalQuestions = filteredQuestions.slice(0, 3);
-
-    // 💾 SAVE TO CACHE for next time
-    if (checkpointId) {
-      const cacheId = `${checkpointId}_${studentId}_${difficulty}`;
-      await db.collection('checkpoint_questions_cache').doc(cacheId).set({
-        checkpointId,
-        studentId,
-        difficulty,
-        subject,
-        questions: finalQuestions,
-        sessionIds: sessionIds,
-        generatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        used: false,
-      });
-      console.log(`💾 Cached questions for ${cacheId}`);
-    }
-
-    return {
-      questions: finalQuestions,
-      sessionIds: sessionIds,
-      difficulty: difficulty,
-      fromCache: false,
-    };
-  } catch (error) {
-    console.error('Error generating checkpoint questions:', error);
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    throw new functions.https.HttpsError('internal', 'Failed to generate questions');
-  }
-});
-
-/**
  * Retention Automation - Check Student Health
  * Runs daily at 10 AM EST to identify at-risk students and send booking nudges
  */
@@ -458,167 +340,6 @@ export const checkStudentHealth = functions.pubsub
       throw error;
     }
   });
-
-/**
- * Generate a fake tutoring session using AI
- * Callable function from client - creates realistic demo sessions
- */
-export const generateFakeSession = functions.https.onCall(async (data, context) => {
-  // Check authentication
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
-
-  const { subject, tutorName } = data;
-  const studentId = context.auth.uid;
-
-  // Default values if not provided
-  const sessionSubject = subject || 'Mathematics';
-  const sessionTutorName = tutorName || 'Dr. Sarah Chen';
-
-  try {
-    // Import OpenAI handler
-    const { callOpenAI } = await import('./openai');
-
-    // Generate a realistic tutoring session transcript using AI
-    const systemPrompt = `You are a tutoring session transcript generator. Create a realistic, natural conversation between a tutor and student about ${sessionSubject}.
-
-Requirements:
-- Make it sound like a real tutoring session (10-15 exchanges)
-- Include the tutor teaching concepts, asking questions, and providing feedback
-- Show the student asking questions, making mistakes, and learning
-- Cover 2-3 key concepts in ${sessionSubject}
-- Use natural, conversational language
-- Include some mathematical work or examples if applicable
-- Format as: "Tutor: \"...\"\nStudent: \"...\"\nTutor: \"...\"" (with quotes)
-
-Generate a realistic transcript that would come from a real tutoring session.`;
-
-    const transcript = await callOpenAI(
-      [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Generate a realistic ${sessionSubject} tutoring session transcript between ${sessionTutorName} and a student.` }
-      ],
-      {
-        model: 'gpt-3.5-turbo',
-        temperature: 0.8,
-        maxTokens: 1000,
-      }
-    );
-
-    // Get student's goals to determine goalId
-    const studentDoc = await admin.firestore().collection('students').doc(studentId).get();
-    const studentData = studentDoc.data();
-    const goals = studentData?.goals || [];
-    
-    // Find matching goal or create a default goalId
-    let goalId = goals.find((g: any) => g.subject === sessionSubject)?.goalId;
-    if (!goalId) {
-      goalId = `goal-${sessionSubject.toLowerCase().replace(/\s+/g, '-')}`;
-    }
-
-    // Create session document in Firestore
-    // This will automatically trigger processTranscript -> generateQuestions
-    const sessionData = {
-      studentId,
-      goalId,
-      subject: sessionSubject,
-      tutorName: sessionTutorName,
-      transcript: transcript.trim(),
-      date: admin.firestore.Timestamp.now(),
-      status: 'completed',
-    };
-
-    const sessionRef = await admin.firestore().collection('sessions').add(sessionData);
-    console.log(`✅ Generated fake session ${sessionRef.id} for subject ${sessionSubject}`);
-
-    return { 
-      success: true, 
-      sessionId: sessionRef.id,
-      message: `Fake ${sessionSubject} session created! The AI will analyze it and generate practice questions.` 
-    };
-  } catch (error) {
-    console.error(`Error generating fake session:`, error);
-    throw new functions.https.HttpsError(
-      'internal',
-      `Failed to generate fake session: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-  }
-});
-
-/**
- * Manually retry processing a session
- * Callable function from client - useful for retrying failed sessions
- */
-export const retrySessionProcessing = functions.https.onCall(async (data, context) => {
-  // Check authentication
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-  }
-
-  const { sessionId } = data;
-  const studentId = context.auth.uid;
-
-  if (!sessionId) {
-    throw new functions.https.HttpsError('invalid-argument', 'sessionId is required');
-  }
-
-  try {
-    // Get session document
-    const sessionRef = admin.firestore().collection('sessions').doc(sessionId);
-    const sessionDoc = await sessionRef.get();
-
-    if (!sessionDoc.exists) {
-      throw new functions.https.HttpsError('not-found', 'Session not found');
-    }
-
-    const session = sessionDoc.data()!;
-
-    // Verify ownership
-    if (session.studentId !== studentId) {
-      throw new functions.https.HttpsError('permission-denied', 'Not authorized to process this session');
-    }
-
-    // Validate required fields
-    if (!session.transcript) {
-      throw new functions.https.HttpsError('invalid-argument', 'Session missing transcript');
-    }
-
-    console.log(`Manually retrying processing for session ${sessionId}`);
-
-    // Analyze transcript using OpenAI
-    const { analyzeTranscript } = await import('./openai-handlers');
-    const analysis = await analyzeTranscript(session.transcript);
-
-    // Update session document with analysis
-    await sessionRef.update({
-      aiAnalysis: {
-        ...analysis,
-        processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      processingError: admin.firestore.FieldValue.delete(),
-    });
-
-    console.log(`Successfully processed transcript for session ${sessionId}`);
-
-    return { success: true, message: 'Session processed successfully' };
-  } catch (error) {
-    console.error(`Error processing session ${sessionId}:`, error);
-    
-    // Update session with error status
-    const sessionRef = admin.firestore().collection('sessions').doc(sessionId);
-    await sessionRef.update({
-      processingError: error instanceof Error ? error.message : 'Unknown error',
-      processedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    throw new functions.https.HttpsError('internal', 'Failed to process session');
-  }
-});
 
 /**
  * Detect goal completion and trigger cross-sell suggestions
@@ -711,6 +432,7 @@ export const generateMoreQuestions = functions.https.onCall(async (data, context
         correctAnswer: question.correctAnswer,
         explanation: question.explanation || '',
         hint: question.hint || '',
+        passage: question.passage || '', // Include passage for reading comprehension questions
         // Attribution
         createdBy: studentId,
         createdByName: studentName,
@@ -742,9 +464,85 @@ export const generateMoreQuestions = functions.https.onCall(async (data, context
   }
 });
 
-// Re-export learning path functions so they're available to Firebase Functions runtime
-export { createLearningPathFromSession };
+/**
+ * Generate chat response with context
+ * Callable function from client
+ */
+export const generateChatResponseFunction = functions.https.onCall(async (data, context) => {
+  // Check authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
 
-// Export chat companion functions
-export { chatCompanion, scheduleTutorMeeting } from './chat-companion';
+  const { message, conversationHistory } = data;
+  const studentId = context.auth.uid;
+
+  if (!message || typeof message !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Message is required');
+  }
+
+  try {
+    const result = await generateChatResponse(studentId, message, conversationHistory || []);
+    return result;
+  } catch (error) {
+    console.error('Error generating chat response:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', `Failed to generate chat response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+});
+
+/**
+ * Validate chat practice question answer
+ * Callable function from client
+ */
+export const validateChatAnswer = functions.https.onCall(async (data, context) => {
+  // Check authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { questionId, correctAnswer, studentAnswer } = data;
+  const studentId = context.auth.uid;
+
+  if (!questionId || !correctAnswer || !studentAnswer) {
+    throw new functions.https.HttpsError('invalid-argument', 'questionId, correctAnswer, and studentAnswer are required');
+  }
+
+  try {
+    const isCorrect = studentAnswer === correctAnswer;
+    
+    // Generate feedback using OpenAI
+    const { callOpenAI } = await import('./openai');
+    const feedbackPrompt = isCorrect
+      ? `The student answered correctly: "${studentAnswer}". Provide brief, encouraging feedback.`
+      : `The student answered "${studentAnswer}" but the correct answer is "${correctAnswer}". Provide helpful, encouraging feedback explaining why.`;
+
+    const feedback = await callOpenAI(
+      [
+        { role: 'system', content: 'You are a helpful tutor providing feedback on practice questions. Be encouraging and educational.' },
+        { role: 'user', content: feedbackPrompt },
+      ],
+      {
+        model: 'gpt-4o',
+        temperature: 0.7,
+        maxTokens: 150,
+      }
+    );
+
+    return {
+      isCorrect,
+      feedback,
+    };
+  } catch (error) {
+    console.error('Error validating answer:', error);
+    // Fallback feedback
+    const isCorrect = studentAnswer === correctAnswer;
+    return {
+      isCorrect,
+      feedback: isCorrect ? 'Correct! Great job!' : `Incorrect. The correct answer is ${correctAnswer}.`,
+    };
+  }
+});
 

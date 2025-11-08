@@ -1,0 +1,260 @@
+# Missing Features - Implementation PRD
+
+## Overview
+This document outlines the missing features identified in the AI Study Companion project, prioritized by importance.
+
+## Priority 1: Chat System (CRITICAL - Missing)
+
+### Status
+- **Backend**: ❌ Not implemented (function commented out)
+- **Frontend**: ❌ No Chat component exists
+- **Routing**: ❌ No `/chat` route
+
+### Requirements
+See detailed PRD: `.taskmaster/docs/chat-prd.txt`
+
+### Key Points
+- Chat is for **clarification** about sessions
+- Questions can be **generated** OR pulled from **practice_items**
+- Cross-sell suggestions based on **student's actual sessions** (not generic)
+- Everything context-aware from student's session history
+
+### Implementation Tasks
+1. Create `Chat.tsx` component
+2. Implement `generateChatResponse` Firebase function
+3. Add `/chat` route to App.tsx
+4. Add Chat link to Navigation
+5. Implement context loading (sessions, goals, practice history)
+6. Add practice question generation in chat
+7. Implement session-based cross-sell logic
+
+---
+
+## Priority 2: Cross-Sell UI Display (HIGH - Missing)
+
+### Status
+- **Backend**: ✅ Implemented (cross-sell detection, notifications)
+- **Frontend**: ❌ No UI to display suggestions
+
+### Requirements
+
+#### 2.1 Dashboard Cross-Sell Banner
+**Location**: `src/components/Dashboard/Dashboard.tsx`
+
+**When to Show**:
+- When student has completed goals
+- When cross-sell suggestions exist in student document
+
+**Display**:
+```
+┌─────────────────────────────────────────┐
+│  🎉 Congrats on completing [Subject]!  │
+│                                         │
+│  Students like you often enjoy:        │
+│  [Subject 1]  [Subject 2]  [Subject 3] │
+│                                         │
+│  [Explore Now →]                       │
+└─────────────────────────────────────────┘
+```
+
+**Features**:
+- Dismissible banner
+- Clickable subject cards
+- Link to create new goal/session
+
+#### 2.2 Progress Page Cross-Sell Section
+**Location**: `src/components/Progress/Progress.tsx`
+
+**When to Show**:
+- Next to completed goals
+- In a dedicated "Suggestions" section
+
+**Display**:
+```
+Subject: SAT Math
+Status: ✓ COMPLETE
+Progress: 10/10 sessions
+
+Suggested Next Steps:
+→ College Essays
+→ AP Calculus
+→ SAT Reading
+```
+
+**Features**:
+- Show "✓ COMPLETE" badge for completed goals
+- Display suggestions next to completed goals
+- "Start here →" buttons for each suggestion
+
+#### 2.3 Chat Cross-Sell Integration
+**Location**: `src/components/Chat/Chat.tsx` (when implemented)
+
+**When to Show**:
+- After goal completion
+- After answering 3 practice questions
+
+**Display**:
+- Inline suggestion cards in chat
+- Clickable subject options
+
+### Implementation Tasks
+1. Add cross-sell banner to Dashboard
+2. Add cross-sell section to Progress page
+3. Update cross-sell logic to be session-based (not generic)
+4. Add "Start here →" action buttons
+5. Integrate with Chat component (when built)
+
+---
+
+## Priority 3: Retention UI Improvements (MEDIUM - Partial)
+
+### Status
+- **Backend**: ✅ Implemented (detection, notifications)
+- **Frontend**: ⚠️ Notifications sent but no in-app display
+
+### Requirements
+
+#### 3.1 Booking Nudge Banner
+**Location**: `src/components/Dashboard/Dashboard.tsx`
+
+**When to Show**:
+- Student has <3 sessions in first 7 days
+- Show persistent banner until 3 sessions completed
+
+**Display**:
+```
+┌─────────────────────────────────────────┐
+│  📚 Keep Your Momentum!                │
+│                                         │
+│  You've completed 2 sessions.          │
+│  Students who book 3+ in week 1 see    │
+│  40% better results!                    │
+│                                         │
+│  [Book Next Session →]                │
+└─────────────────────────────────────────┘
+```
+
+**Features**:
+- Dismissible (but reappears if still at-risk)
+- Direct link to booking/session creation
+- Show session count and days remaining
+
+#### 3.2 Notification History
+**Location**: `src/components/Dashboard/Dashboard.tsx` or new component
+
+**Display**:
+- List of recent notifications
+- Mark as read/unread
+- Click to action
+
+### Implementation Tasks
+1. Add booking nudge banner to Dashboard
+2. Query notifications collection for student
+3. Display notification history
+4. Add action buttons to notifications
+5. Track notification interactions
+
+---
+
+## Priority 4: Cross-Sell Mapping Updates (LOW - Minor)
+
+### Status
+- **Backend**: ⚠️ Partially complete
+- **Issue**: Generic mappings, not session-based
+
+### Requirements
+
+#### 4.1 Update Cross-Sell Logic
+**Location**: `functions/src/crosssell.ts`
+
+**Current**: Hardcoded mappings
+```typescript
+'SAT Math': ['College Essays', 'AP Calculus', 'SAT Reading']
+```
+
+**Required**: Session-based suggestions
+- Analyze student's actual session history
+- Suggest subjects based on their learning path
+- Not generic, but personalized
+
+**Example**:
+```
+If student has:
+- 5 Chemistry sessions
+- 2 Physics sessions
+- 1 Biology session
+
+Suggestions:
+- AP Chemistry (natural progression)
+- Environmental Science (related to Biology)
+- Medicine (related to Chemistry + Biology)
+```
+
+#### 4.2 Add Missing Subjects (Optional)
+If keeping some generic mappings:
+- Add "Study Skills" to SAT completion
+- Add "AP prep" as generic option
+- Make Chemistry → STEM subjects more explicit
+
+### Implementation Tasks
+1. Refactor `getCrossSellSuggestions` to be session-based
+2. Analyze student's session history
+3. Generate personalized suggestions
+4. Keep generic mappings as fallback
+
+---
+
+## Implementation Summary
+
+### Phase 1: Chat System (CRITICAL)
+- **Estimated Effort**: 3-4 days
+- **Components**: Chat.tsx, generateChatResponse function, routing
+- **Dependencies**: None
+
+### Phase 2: Cross-Sell UI (HIGH)
+- **Estimated Effort**: 1-2 days
+- **Components**: Dashboard banner, Progress section
+- **Dependencies**: Chat system (for chat integration)
+
+### Phase 3: Retention UI (MEDIUM)
+- **Estimated Effort**: 1 day
+- **Components**: Booking nudge banner, notification history
+- **Dependencies**: None
+
+### Phase 4: Cross-Sell Logic Update (LOW)
+- **Estimated Effort**: 1 day
+- **Components**: Refactor crosssell.ts
+- **Dependencies**: None
+
+---
+
+## Success Metrics
+
+### Chat System
+- ✅ Students can ask clarification questions
+- ✅ AI references specific session moments
+- ✅ Practice questions work in chat
+- ✅ Cross-sell suggestions appear in chat
+
+### Cross-Sell UI
+- ✅ Suggestions visible in Dashboard
+- ✅ Suggestions visible in Progress page
+- ✅ Suggestions clickable and actionable
+- ✅ Suggestions based on session history
+
+### Retention UI
+- ✅ Booking nudges visible in-app
+- ✅ Notification history accessible
+- ✅ Clear call-to-action buttons
+
+---
+
+## Notes
+
+- **Key Principle**: Everything should be based on student's actual sessions
+- **Chat is Priority 1**: Biggest missing piece
+- **Cross-Sell**: Should be session-based, not generic
+- **UI Display**: Backend works, frontend needs implementation
+
+
+

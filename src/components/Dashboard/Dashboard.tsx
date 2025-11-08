@@ -47,7 +47,6 @@ function Dashboard() {
   const navigate = useNavigate();
   const [student, setStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
-  const [practiceCount, setPracticeCount] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [correctAnswers, setCorrectAnswers] = useState(0);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -79,39 +78,73 @@ function Dashboard() {
     return unsubscribe;
   }, [userId]);
 
-  // Load practice count and topics
+  // Load topics explored
   useEffect(() => {
     if (!userId) return;
 
-    const loadPracticeData = async () => {
+    const loadTopicsData = async () => {
+      const uniqueTopics = new Set<string>();
+      
+      // Load practice_items (session-generated questions) to count topics
       const practiceQuery = query(
         collection(db, 'practice_items'),
         where('studentId', '==', userId)
       );
-      const snapshot = await getDocs(practiceQuery);
+      const practiceSnapshot = await getDocs(practiceQuery);
       
-      let total = 0;
-      const uniqueTopics = new Set<string>();
-      
-      snapshot.docs.forEach(doc => {
+      practiceSnapshot.docs.forEach(doc => {
         const data = doc.data();
         const questions = data.questions || [];
         const responses = data.responses || [];
         const answeredIds = new Set(responses.map((r: any) => r.questionId));
-        const unanswered = questions.filter((q: any) => !answeredIds.has(q.questionId));
-        total += unanswered.length;
         
-        // Count unique topics
+        // Count unique topics from practice_items questions the user has answered
         questions.forEach((q: any) => {
-          if (q.topic) uniqueTopics.add(q.topic);
+          if (answeredIds.has(q.questionId) && q.topic) {
+            uniqueTopics.add(q.topic);
+          }
         });
       });
+
+      // Load user responses to shared questions to count topics they've explored
+      const userResponsesQuery = query(
+        collection(db, 'user_responses'),
+        where('studentId', '==', userId)
+      );
+      const userResponsesSnapshot = await getDocs(userResponsesQuery);
       
-      setPracticeCount(total);
+      // Get unique question IDs the user has answered
+      const answeredQuestionIds = new Set(
+        userResponsesSnapshot.docs.map(doc => doc.data().questionId)
+      );
+      
+      // Load shared questions that the user has answered to get their topics
+      if (answeredQuestionIds.size > 0) {
+        const sharedQuestionsQuery = query(
+          collection(db, 'questions')
+        );
+        const sharedQuestionsSnapshot = await getDocs(sharedQuestionsQuery);
+        
+        sharedQuestionsSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          // Only count topics from questions the user has actually answered
+          if (answeredQuestionIds.has(doc.id)) {
+            // Shared questions can have 'topics' (array), 'topic' (string), or 'subject'
+            if (data.topics && Array.isArray(data.topics)) {
+              data.topics.forEach((topic: string) => uniqueTopics.add(topic));
+            } else if (data.topic) {
+              uniqueTopics.add(data.topic);
+            } else if (data.subject) {
+              uniqueTopics.add(data.subject);
+            }
+          }
+        });
+      }
+      
       setTopicsExplored(uniqueTopics.size);
     };
 
-    loadPracticeData();
+    loadTopicsData();
   }, [userId]);
 
   // Load stats and sessions
@@ -119,27 +152,44 @@ function Dashboard() {
     if (!userId) return;
 
     const loadData = async () => {
-      // Practice stats
+      // Practice stats from practice_items (session-generated questions)
       const practiceQuery = query(
         collection(db, 'practice_items'),
         where('studentId', '==', userId)
       );
       const practiceSnapshot = await getDocs(practiceQuery);
       
-      let answered = 0;
-      let correct = 0;
+      let correctFromPractice = 0;
       
       practiceSnapshot.docs.forEach(doc => {
         const data = doc.data();
         const responses = data.responses || [];
+        // Count only correct answers from practice_items
         responses.forEach((r: any) => {
-          answered++;
-          if (r.isCorrect) correct++;
+          if (r.isCorrect) correctFromPractice++;
         });
       });
+
+      // Also count correct answers from shared questions (user_responses collection)
+      const userResponsesQuery = query(
+        collection(db, 'user_responses'),
+        where('studentId', '==', userId)
+      );
+      const userResponsesSnapshot = await getDocs(userResponsesQuery);
       
-      setQuestionsAnswered(answered);
-      setCorrectAnswers(correct);
+      let correctFromShared = 0;
+      userResponsesSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.isCorrect) {
+          correctFromShared++;
+        }
+      });
+
+      // Total correct answers (problems solved) = correct from both sources
+      const totalCorrect = correctFromPractice + correctFromShared;
+      
+      setQuestionsAnswered(totalCorrect); // Show only correctly solved questions
+      setCorrectAnswers(totalCorrect);
 
       // Sessions - simplified query without orderBy
       const sessionsQuery = query(
@@ -249,6 +299,8 @@ function Dashboard() {
     dailyGoals: { date: '', target: 3, completed: 0 },
   };
 
+  // Get today's date in YYYY-MM-DD format (using UTC to match backend)
+  // Backend uses: new Date().toISOString().split('T')[0] which is UTC
   const today = new Date().toISOString().split('T')[0];
   const isToday = gamification.dailyGoals.date === today;
   const completed = isToday ? gamification.dailyGoals.completed : 0;
@@ -322,7 +374,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Today's Goal + Practice Questions */}
+          {/* Today's Goal */}
           <div className="top-row">
             <div className="daily-goal-compact">
               <span className="goal-label">Today's Goal</span>
@@ -334,20 +386,6 @@ function Dashboard() {
                     style={{ width: `${(completed / target) * 100}%` }}
                   />
                 </div>
-              </div>
-            </div>
-
-            <div className="practice-questions-card">
-              <span className="questions-label">Practice Questions</span>
-              <div className="questions-content">
-                <span className="questions-number">{practiceCount}</span>
-                <button 
-                  className="start-button" 
-                  onClick={() => navigate('/practice')}
-                  disabled={practiceCount === 0}
-                >
-                  {practiceCount > 0 ? 'Start' : 'None'}
-                </button>
               </div>
             </div>
           </div>
@@ -469,3 +507,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+

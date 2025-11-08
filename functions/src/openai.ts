@@ -41,7 +41,7 @@ export async function callOpenAI(
   try {
     const client = getOpenAIClient();
     const response = await client.chat.completions.create({
-      model: options.model || 'gpt-4',
+      model: options.model || 'gpt-4o',
       messages: messages,
       temperature: options.temperature ?? 0.7,
       max_tokens: options.maxTokens,
@@ -68,7 +68,7 @@ export async function callOpenAIJSON<T>(
     maxTokens?: number;
   } = {}
 ): Promise<T> {
-  const model = options.model || 'gpt-4';
+  const model = options.model || 'gpt-4o';
   
   // Models that support JSON mode
   const jsonModeSupported = [

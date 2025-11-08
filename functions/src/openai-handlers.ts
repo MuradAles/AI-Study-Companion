@@ -66,7 +66,7 @@ Return JSON format with these exact fields:
       { role: 'user', content: `Analyze this tutoring session:\n\n${transcript}` },
     ],
     {
-      model: 'gpt-4o-mini', // Using gpt-4o-mini which supports JSON mode and is more cost-effective
+      model: 'gpt-4o',
       temperature: 0.3,
     }
   );
@@ -125,7 +125,7 @@ Generate 3 practice questions:`;
       { role: 'user', content: contextPrompt },
     ],
     {
-      model: 'gpt-4o-mini', // Using gpt-4o-mini which supports JSON mode and is more cost-effective
+      model: 'gpt-4o',
       temperature: 0.7,
     }
   );
@@ -203,7 +203,7 @@ Generate 1 practice question:`;
       { role: 'user', content: contextPrompt },
     ],
     {
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       temperature: 0.7,
     }
   );
@@ -484,7 +484,7 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
         },
       ],
       {
-        model: 'gpt-4o-mini', // Using gpt-4o-mini which supports JSON mode
+        model: 'gpt-4o',
         temperature: 0.5,
       }
     );
@@ -626,7 +626,7 @@ NO additional text, ONLY the JSON array.`;
       },
     ],
     {
-      model: 'gpt-4',
+      model: 'gpt-4o',
       temperature: 0.8, // Higher for more variety
       maxTokens: 1500,
     }

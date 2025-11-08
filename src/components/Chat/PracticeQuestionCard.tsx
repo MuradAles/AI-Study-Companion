@@ -12,17 +12,24 @@ interface PracticeQuestion {
 interface PracticeQuestionCardProps {
   question: PracticeQuestion;
   messageId: string;
+  onAnswerSelect?: (answer: string) => void;
+  disabled?: boolean;
 }
 
-function PracticeQuestionCard({ question, messageId }: PracticeQuestionCardProps) {
+function PracticeQuestionCard({ question, messageId, onAnswerSelect, disabled = false }: PracticeQuestionCardProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(question.userAnswer || null);
   const [showResult, setShowResult] = useState<boolean>(!!question.userAnswer);
 
   const handleAnswerSelect = (option: string) => {
-    if (showResult) return; // Already answered
+    if (showResult || disabled) return; // Already answered or disabled
 
     setSelectedAnswer(option);
     setShowResult(true);
+    
+    // Call parent callback if provided
+    if (onAnswerSelect) {
+      onAnswerSelect(option);
+    }
   };
 
   const isCorrect = selectedAnswer === question.correctAnswer;
@@ -52,7 +59,7 @@ function PracticeQuestionCard({ question, messageId }: PracticeQuestionCardProps
               key={index}
               className={className}
               onClick={() => handleAnswerSelect(label)}
-              disabled={showResult}
+              disabled={showResult || disabled}
             >
               <span className="option-label">{label}</span>
               <span className="option-text">{option}</span>

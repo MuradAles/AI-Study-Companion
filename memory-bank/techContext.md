@@ -3,23 +3,25 @@
 ## Tech Stack
 
 ### Frontend
-- **Framework:** React 18+ with TypeScript
+- **Framework:** React 19 with TypeScript
 - **Build Tool:** Vite
 - **State Management:** React Hooks (useState, useEffect, custom hooks)
-- **Styling:** CSS (App.css, index.css)
-- **Routing:** React Router (to be implemented)
+- **Styling:** CSS (App.css, index.css, component-specific CSS files)
+- **Routing:** React Router v7
+- **UI Libraries:** None (custom components)
 
 ### Backend
 - **Platform:** Firebase
   - **Database:** Firestore (NoSQL)
-  - **Functions:** Cloud Functions (Node.js)
+  - **Functions:** Cloud Functions (Node.js 18)
   - **Hosting:** Firebase Hosting
   - **Messaging:** Firebase Cloud Messaging (FCM)
+  - **Authentication:** Firebase Auth (Anonymous for dev)
 
 ### AI Integration
-- **Primary:** OpenAI GPT-4 (for transcript analysis, question generation)
-- **Secondary:** GPT-3.5-turbo (for answer evaluation, chat - cost optimization)
-- **Fallback:** Claude API (alternative option)
+- **Primary:** OpenAI GPT-4o (for transcript analysis, question generation, chat)
+- **Secondary:** GPT-3.5-turbo (for cost optimization where appropriate)
+- **API:** OpenAI API v1 (via `openai` npm package)
 
 ### Development Tools
 - **Package Manager:** npm
@@ -42,34 +44,44 @@ Git
 ai-study-companion/
 ├── src/
 │   ├── components/
-│   │   ├── Dashboard/
-│   │   ├── Practice/
-│   │   ├── Chat/
-│   │   ├── Progress/
-│   │   ├── Gamification/
-│   │   └── Shared/
+│   │   ├── Dashboard/          # Main dashboard with gamification
+│   │   ├── Practice/           # Practice question interface (shared questions)
+│   │   ├── Chat/              # AI chat companion
+│   │   │   ├── Chat.tsx       # Main chat component
+│   │   │   ├── ChatList.tsx   # Conversation list
+│   │   │   └── PracticeQuestionCard.tsx # Inline practice questions
+│   │   ├── Progress/          # Progress tracking dashboard
+│   │   ├── Session/           # Session creation and detail views
+│   │   ├── Login/             # Authentication
+│   │   └── Shared/           # Navigation, etc.
+│   ├── contexts/
+│   │   └── AuthContext.tsx    # Authentication state management
 │   ├── hooks/
-│   │   ├── useStudent.js
-│   │   ├── usePracticeItems.js
-│   │   ├── useGamification.js
-│   │   ├── useChat.js
-│   │   └── useNotifications.js
+│   │   ├── usePracticeItems.ts # Hook for shared questions
+│   │   ├── useInitializeStudent.ts
+│   │   └── useNotifications.ts
 │   ├── services/
-│   │   ├── firebase.js
-│   │   ├── api.js
-│   │   └── notifications.js
+│   │   └── firebase.ts        # Firebase initialization
 │   ├── utils/
-│   │   ├── gamification.js
-│   │   ├── dateHelpers.js
-│   │   └── formatting.js
-│   ├── App.tsx
-│   └── main.tsx
-├── functions/ (Firebase Functions)
+│   │   └── testDataHelper.ts  # Test data utilities
+│   ├── App.tsx                # Main app with routing
+│   └── main.tsx               # Entry point
+├── functions/                 # Firebase Functions
+│   └── src/
+│       ├── index.ts           # Functions entry point
+│       ├── openai.ts          # OpenAI client setup
+│       ├── openai-handlers.ts # AI processing functions
+│       ├── chat.ts            # Chat-specific functions
+│       ├── gamification.ts   # Points, levels, badges logic
+│       ├── retention.ts      # At-risk student detection
+│       └── crosssell.ts      # Cross-sell suggestions
 ├── public/
-├── .env (local environment variables)
-├── firebase.json
-├── package.json
-└── vite.config.ts
+│   ├── manifest.json          # PWA manifest
+│   └── firebase-messaging-sw.js # Service worker
+├── memory-bank/              # Project documentation
+├── firebase.json             # Firebase configuration
+├── firestore.rules          # Database security rules
+└── firestore.indexes.json   # Database indexes
 ```
 
 ### Firebase Configuration
@@ -79,29 +91,33 @@ ai-study-companion/
 - Cloud Functions
 - Hosting
 - Cloud Messaging
-- Authentication (for user management)
+- Authentication (Anonymous Auth enabled)
 
 **Firestore Collections:**
 - `students/` - Student profiles and gamification data
 - `sessions/` - Tutoring session transcripts and AI analysis
-- `practice_items/` - Generated practice questions
-- `conversations/` - AI chat conversation history
+- `questions/` - Shared practice questions pool (visible to all students, generated from sessions)
+- `practice_items/` - Per-student scheduled practice questions (checkpoint system)
+- `user_responses/` - Student answers to shared questions (from `questions` collection)
+- `conversations/` - AI chat conversation history (one per student or multiple)
 - `notifications/` - Push notification tracking
 
 ### Environment Variables
 
-**Local Development (.env):**
-```
-REACT_APP_FIREBASE_API_KEY=...
-REACT_APP_FIREBASE_AUTH_DOMAIN=...
-REACT_APP_FIREBASE_PROJECT_ID=...
-REACT_APP_FIREBASE_STORAGE_BUCKET=...
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=...
-REACT_APP_FIREBASE_APP_ID=...
+**Local Development (.env in root):**
+```env
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_VAPID_KEY=...
+VITE_USE_EMULATOR=false
 ```
 
-**Firebase Functions (.env):**
-```
+**Firebase Functions (functions/.env):**
+```env
 OPENAI_API_KEY=... (server-side only)
 ```
 
@@ -110,19 +126,19 @@ OPENAI_API_KEY=... (server-side only)
 ### Frontend Dependencies
 ```json
 {
-  "react": "^18.0.0",
-  "react-dom": "^18.0.0",
-  "firebase": "^10.0.0",
-  "react-router-dom": "^6.0.0" (to be added)
+  "react": "^19.1.1",
+  "react-dom": "^19.1.1",
+  "firebase": "^12.5.0",
+  "react-router-dom": "^7.9.5"
 }
 ```
 
 ### Firebase Functions Dependencies
 ```json
 {
-  "firebase-admin": "^11.0.0",
-  "firebase-functions": "^4.0.0",
-  "openai": "^4.0.0"
+  "firebase-admin": "^11.x",
+  "firebase-functions": "^4.x",
+  "openai": "^4.x"
 }
 ```
 
@@ -134,25 +150,37 @@ OPENAI_API_KEY=... (server-side only)
 - `chat.completions.create()` for all AI operations
 
 **Models:**
-- GPT-4: Transcript analysis, question generation
-- GPT-3.5-turbo: Answer evaluation, chat responses (cost optimization)
+- GPT-4o: Transcript analysis, question generation, chat responses
+- GPT-3.5-turbo: (Reserved for cost optimization if needed)
 
 **Request Patterns:**
-- JSON mode for structured responses
+- JSON mode for structured responses (`callOpenAIJSON`)
 - System prompts for role definition
 - Temperature tuning per use case (0.3-0.7)
 - Token limits for cost control
 
+**Key Functions:**
+- `analyzeTranscript()` - Session transcript analysis
+- `generatePracticeQuestions()` - Creates shared questions
+- `generateSingleQuestion()` - Creates single question (for chat)
+- `evaluateAnswer()` - Evaluates student answers
+- `generateChatResponse()` - Chat conversation responses
+
 ### Firebase Functions
 
-**Callable Functions:**
-- `evaluateAnswer()` - Client calls with practice data
-- `generateChatResponse()` - Client calls with conversation context
+**Callable Functions (Client → Server):**
+- `evaluateAnswer()` - Client calls with practice data (shared questions)
+- `generateChatResponseFunction()` - Client calls with conversation context
+- `validateChatAnswer()` - Client calls to validate chat practice question answers
+- `generateMoreQuestions()` - Generate similar questions
 
-**Triggered Functions:**
-- `processTranscript()` - Firestore onCreate trigger
-- `generateQuestions()` - Firestore onUpdate trigger
-- `checkStudentHealth()` - Scheduled (daily at 10am)
+**Triggered Functions (Firestore Events):**
+- `processTranscript()` - Firestore onCreate trigger (sessions)
+- `generateQuestions()` - Firestore onUpdate trigger (sessions with aiAnalysis)
+- `onGoalCompletion()` - Firestore onUpdate trigger (students/goals)
+
+**Scheduled Functions:**
+- `checkStudentHealth()` - Scheduled (daily at 10 AM EST)
 
 ## Data Models
 
@@ -163,13 +191,30 @@ OPENAI_API_KEY=... (server-side only)
 {
   studentId: string;
   name: string;
-  email: string;
+  email?: string;
   firstSessionDate: Timestamp;
   lastActive: Timestamp;
-  fcmToken: string;
-  goals: Goal[];
-  gamification: GamificationData;
-  preferences: Preferences;
+  fcmToken?: string;
+  goals: Array<{
+    goalId: string;
+    subject: string;
+    status: 'active' | 'completed' | 'paused';
+  }>;
+  gamification: {
+    totalPoints: number;
+    level: number;
+    currentStreak: number;
+    longestStreak: number;
+    lastActivityDate: string; // ISO date string
+    badges: string[];
+    dailyGoals: {
+      date: string;
+      target: number;
+      completed: number;
+      status: 'in_progress' | 'completed';
+    };
+  };
+  crossSellSuggestions?: string[]; // Suggested subjects
 }
 ```
 
@@ -182,23 +227,94 @@ OPENAI_API_KEY=... (server-side only)
   tutorName: string;
   subject: string;
   date: Timestamp;
-  duration: number;
+  duration?: number;
   transcript: string;
-  aiAnalysis: AIAnalysis;
+  aiAnalysis?: {
+    topicsCovered: string[];
+    studentStruggles: string[];
+    studentStrengths: string[];
+    keyMoments: Array<{
+      timestamp: string;
+      type: 'confusion' | 'breakthrough' | 'question' | 'explanation';
+      note: string;
+    }>;
+    confidenceLevel: number;
+    suggestedTopics: string[];
+    processedAt: string;
+  };
+  processedAt?: Timestamp;
 }
 ```
 
-**practice_items/{practiceId}**
+**questions/{questionId}** (Shared Question Pool)
 ```typescript
 {
-  practiceId: string;
+  questionId: string;
+  subject: string;
+  topics: string[];
+  difficulty: 'easy' | 'medium' | 'hard';
+  text: string;
+  correctAnswer: string;
+  explanation: string;
+  hint: string;
+  passage?: string; // For reading comprehension
+  // Attribution
+  createdBy: string; // studentId
+  createdByName: string;
+  source: 'session_analysis' | 'user_generated';
+  sessionId?: string;
+  basedOnQuestionId?: string;
+  // Metadata
+  createdAt: Timestamp;
+  upvotes: number;
+  timesAttempted: number;
+  timesCorrect: number;
+}
+```
+
+**conversations/{conversationId}**
+```typescript
+{
+  conversationId: string;
   studentId: string;
-  sessionId: string;
-  goalId: string;
-  scheduledFor: Timestamp;
-  status: 'pending' | 'completed' | 'skipped';
-  questions: Question[];
-  responses: Response[];
+  title: string;
+  messages: Array<{
+    role: 'student' | 'assistant';
+    content: string;
+    timestamp: Timestamp;
+    practiceQuestion?: {
+      questionId: string;
+      questionText: string;
+      topic: string;
+      options: string[]; // 4 options (A, B, C, D)
+      correctAnswer: string; // 'A', 'B', 'C', or 'D'
+    };
+    answer?: {
+      studentAnswer: string; // 'A', 'B', 'C', or 'D'
+      isCorrect: boolean;
+      feedback: string;
+    };
+    suggestions?: {
+      type: 'cross_sell' | 'new_subject';
+      subjects: string[];
+    };
+  }>;
+  lastMessageAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+**user_responses/{responseId}**
+```typescript
+{
+  studentId: string;
+  questionId: string; // Reference to questions collection
+  studentAnswer: string;
+  isCorrect: boolean;
+  feedback: string;
+  pointsAwarded: number;
+  attemptedAt: Timestamp;
 }
 ```
 
@@ -211,7 +327,7 @@ OPENAI_API_KEY=... (server-side only)
 - FCM: Unlimited (free)
 
 ### OpenAI Costs
-- GPT-4: ~$0.03 per 1K tokens
+- GPT-4o: ~$0.03 per 1K tokens (input), ~$0.12 per 1K tokens (output)
 - GPT-3.5-turbo: ~$0.001 per 1K tokens
 - Target: Optimize to ~$2,500/month for 3,000 students
 
@@ -227,6 +343,7 @@ OPENAI_API_KEY=... (server-side only)
 ```bash
 # Install dependencies
 npm install
+cd functions && npm install && cd ..
 
 # Start dev server
 npm run dev
@@ -247,7 +364,7 @@ firebase deploy --only functions
 firebase deploy --only hosting
 
 # Deploy both
-firebase deploy --only hosting,functions
+firebase deploy
 ```
 
 ### Testing Strategy
@@ -255,6 +372,7 @@ firebase deploy --only hosting,functions
 - Integration tests for Firebase Functions
 - E2E tests for critical user flows
 - Manual testing with demo account
+- Test data helper utilities available
 
 ## Configuration Files
 
@@ -287,6 +405,9 @@ service cloud.firestore {
     match /sessions/{sessionId} {
       allow read: if request.auth != null && resource.data.studentId == request.auth.uid;
     }
+    match /conversations/{conversationId} {
+      allow read, write: if request.auth != null && resource.data.studentId == request.auth.uid;
+    }
     // ... more rules
   }
 }
@@ -298,11 +419,13 @@ service cloud.firestore {
 - Firebase Auth required for all operations
 - Student documents secured by user ID matching
 - Functions verify authentication context
+- Anonymous auth for development, email for production
 
 ### API Security
 - OpenAI API key never exposed to client
 - All AI calls happen server-side
 - Rate limiting on Firebase Functions
+- Input validation on all callable functions
 
 ### Data Privacy
 - Student data encrypted at rest
@@ -323,13 +446,15 @@ service cloud.firestore {
 - Chat usage patterns
 - Gamification engagement metrics
 - Notification click-through rates
+- Question pool statistics
 
 ## Deployment Environments
 
 ### Development
 - Local Firebase emulator suite
-- Mock OpenAI API responses
+- Mock OpenAI API responses (if needed)
 - Test student accounts
+- Development Firebase project
 
 ### Production
 - Firebase Hosting (HTTPS)
@@ -337,3 +462,25 @@ service cloud.firestore {
 - Production Firestore database
 - Live OpenAI API integration
 
+## Key Implementation Details
+
+### Chat System
+- Conversation persistence via Firestore
+- Real-time updates via `onSnapshot`
+- Context loading optimized (last 5 sessions)
+- Subject filtering on first message
+- Practice questions always generated new
+- Multiple choice format enforced (4 options)
+
+### Question Pool
+- Shared questions collection
+- Attribution tracking
+- Usage statistics
+- All students benefit from shared pool
+- Chat generates separate new questions
+
+### Gamification
+- Server-side calculation
+- Real-time updates via listeners
+- Chat questions excluded from gamification
+- Only practice page questions count

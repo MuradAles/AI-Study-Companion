@@ -338,7 +338,7 @@ function Progress() {
                 <p style={{ margin: '10px 0 0 0', color: '#666', fontSize: '14px', maxWidth: '600px', lineHeight: '1.6' }}>
                   <strong>What this means:</strong> This tracks how many <strong>tutoring sessions</strong> you've completed for each subject (e.g., "3/10 Math sessions completed"). 
                   The count comes from your <strong>Recent Sessions</strong> - each tutoring session you complete is counted toward your goal. 
-                  This is separate from the Learning Path checkpoints - those track practice question completion.
+                  This tracks practice question completion.
                 </p>
               </div>
               {uniqueSubjects.length > 1 && (

@@ -102,7 +102,6 @@ function Practice() {
   });
 
   useEffect(() => {
-    // If coming from learning path, filter by difficulty and subject
     let practiceQuery = query(
       collection(db, 'practice_items'),
       where('studentId', '==', userId),
@@ -118,7 +117,7 @@ function Practice() {
         ...doc.data(),
       })) as PracticeItem[];
 
-      // Filter by difficulty and sessionIds if coming from learning path
+      // Filter by difficulty and sessionIds if provided
       if (difficulty && checkpointId && sessionIds.length > 0) {
         items = items.filter(item => {
           // Filter by sessionIds (questions from this checkpoint's sessions)
@@ -277,12 +276,8 @@ function Practice() {
           
           // Check if checkpoint is complete (3 correct answers)
           if (newCount >= 3) {
-            console.log(`Checkpoint ${checkpointId} completed! Navigating back to learning path...`);
-            // Navigate back to learning path after completion
-            // Use replace: true to prevent going back to practice
-            setTimeout(() => {
-              navigate(`/learning-path?subject=${subject || 'Algebra'}&completed=${checkpointId}`, { replace: true });
-            }, 1500);
+            console.log(`Checkpoint ${checkpointId} completed!`);
+            // Checkpoint completed - could show a success message here
           }
           
           return newCount;

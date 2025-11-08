@@ -15,6 +15,7 @@ interface SharedQuestion {
   correctAnswer: string;
   explanation: string;
   hint: string;
+  passage?: string; // Optional passage text for reading comprehension questions
   createdBy: string;
   createdByName: string;
   source: string;
@@ -455,6 +456,29 @@ function PracticeShared() {
                   )}
                 </div>
               </div>
+
+              {/* Display passage if available (for reading comprehension) */}
+              {selectedQuestion.passage && (
+                <div className="passage-container" style={{
+                  marginBottom: '20px',
+                  padding: '15px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  border: '1px solid #e0e0e0'
+                }}>
+                  <h3 style={{ marginTop: 0, marginBottom: '10px', fontSize: '18px', color: '#333' }}>
+                    📖 Passage
+                  </h3>
+                  <div style={{
+                    lineHeight: '1.6',
+                    color: '#555',
+                    whiteSpace: 'pre-wrap',
+                    fontSize: '15px'
+                  }}>
+                    {selectedQuestion.passage}
+                  </div>
+                </div>
+              )}
 
               {/* Question text */}
               <div className="question-detail-text">

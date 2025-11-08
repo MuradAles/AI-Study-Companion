@@ -94,6 +94,16 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
       allow update, delete: if false; // Only admin/tutors can modify bookings
     }
+    
+    // Conversations collection - students can read/write their own conversations
+    match /conversations/{conversationId} {
+      // Allow reading conversations where the user is the owner
+      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      // Allow creating new conversations where the user sets themselves as owner
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      // Allow updating and deleting their own conversations
+      allow update, delete: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+    }
   }
 }
 

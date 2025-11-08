@@ -1,0 +1,365 @@
+# AI Study Companion Chat System - PRD
+
+## Project Overview
+Build a chat interface that allows students to ask clarification questions about their tutoring sessions. The chat provides contextual help based on the student's actual session history and can generate practice questions when requested.
+
+## Core Purpose
+**Chat is for clarification** - Students can ask questions about topics covered in their sessions to better understand concepts.
+
+## Core Requirements
+
+### 1. Session-Based Clarification Chat
+- **Primary Use Case**: Student asks questions about topics from their actual tutoring sessions
+- **Context Source**: Only the student's own sessions (not generic knowledge)
+- **Response Style**: 
+  - Reference specific moments from their sessions when relevant
+  - Provide clear, helpful explanations
+  - Use session transcripts and AI analysis to provide context-aware answers
+
+**Example Flow:**
+```
+Student: "I don't understand the quadratic formula from yesterday's session"
+AI: "I see in your Math session with Ms. Chen yesterday, you worked on quadratic equations. 
+     At 15:30, she showed you the formula: x = (-b ± √(b²-4ac)) / 2a. 
+     Let me break down what each part means..."
+```
+
+### 2. Practice Question Generation in Chat
+- **Trigger**: When student wants to practice/solve a question
+- **Intent Detection**: AI analyzes student message to determine:
+  - "I want to solve something" → Generate practice question
+  - "Give me examples" → Generate practice question
+  - "I want to practice [topic]" → Generate practice question
+- **Question Source**: **ALWAYS GENERATE NEW QUESTION** (not from practice_items)
+  - AI creates a fresh question based on session topics
+  - Format matches practice page format
+  - Multiple choice with 4 options (A, B, C, D)
+- **Question Type**: Based on topics from student's actual sessions
+- **Integration**: Questions appear inline in chat conversation
+- **Answer Validation**: 
+  - Student selects one of 4 multiple choice options
+  - AI validates answer and provides feedback
+  - Shows correct/incorrect immediately
+  - **If correct**: Show sparkles/celebration animation (visual feedback only)
+  - **No gamification**: Chat questions do NOT count toward points, levels, streaks, or daily goals
+  - **Only practice page questions** count toward gamification
+
+**Example Flow:**
+```
+Student: "Can you give me some examples from geometry for this subject based on my session?"
+AI: "Sure! Let me create a practice question based on what you learned in your Geometry session..."
+     [Question appears in chat with 4 multiple choice options]
+Student: [Selects option B]
+AI: [Validates and provides feedback: "Correct! / Incorrect. The answer is C because..."]
+```
+
+### 3. Session-Based Cross-Sell Suggestions
+- **Data Source**: Based on student's actual completed sessions (not generic mappings)
+- **Logic**: 
+  - Analyze student's session history
+  - Identify subjects they've completed
+  - Suggest related subjects based on their actual learning path
+  - Show suggestions when goals complete OR after answering 3 practice questions
+- **Personalization**: Suggestions are unique to each student's session history
+
+**Example:**
+```
+If student completed:
+- 3 Chemistry sessions
+- 2 Physics sessions
+- 1 Biology session
+
+Suggestions might be:
+- "You've been exploring science subjects! Want to try AP Chemistry or Environmental Science?"
+```
+
+### 4. Context Loading
+The chat system loads:
+- **Student's Goals**: Current goals and completion status
+- **Recent Sessions**: Last 3-5 sessions with transcripts and AI analysis
+- **Session Topics**: Topics covered in each session
+- **Student Struggles**: Areas identified as challenging from AI analysis
+- **Student Strengths**: Areas identified as strong from AI analysis
+- **Practice History**: Questions answered and performance
+
+### 5. Conversation Flow
+
+#### Flow 1: Clarification Question
+```
+1. Student asks: "What is photosynthesis?"
+2. AI checks: Is this topic from student's sessions?
+   - YES → Reference specific session moment
+   - NO → "I don't see this in your sessions. Would you like to book a session to learn about it?"
+3. AI provides helpful explanation with session context
+```
+
+#### Flow 2: Practice Request
+```
+1. Student: "I want to practice solving equations" OR "Give me examples from geometry"
+2. AI detects intent: Student wants to solve/practice something
+3. AI checks: What topics from student's sessions match the request?
+4. AI GENERATES NEW QUESTION (always new, not from practice_items)
+   - Format: Multiple choice with 4 options (A, B, C, D)
+   - Based on session topics
+   - Matches practice page format
+5. Question appears inline in chat
+6. Student selects one of 4 options
+7. AI validates answer immediately
+8. If correct → Show sparkles/celebration animation (visual only, no points)
+9. AI provides feedback (correct/incorrect with explanation)
+10. After answering question → Suggest: "Do you want to try a new subject? Next thing?"
+11. After 3 questions answered → Show cross-sell suggestions (if applicable)
+```
+
+#### Flow 3: Goal Completion Cross-Sell
+```
+1. Student completes a goal (e.g., "SAT Math" status = completed)
+2. AI analyzes: What subjects has student studied?
+3. AI suggests: Related subjects based on actual session history
+4. Suggestion appears in chat: "Great job completing SAT Math! 
+   Based on your sessions, you might enjoy: College Essays, AP Calculus..."
+```
+
+## Technical Implementation
+
+### Backend (Firebase Functions)
+
+#### 1. Chat Response Function
+**Location**: `functions/src/index.ts` or new `functions/src/chat.ts`
+
+**Function**: `generateChatResponse`
+- **Input**: 
+  - `message`: Student's message
+  - `studentId`: Authenticated student ID
+  - `conversationId`: Optional conversation ID for context
+- **Process**:
+  1. Load student context (goals, sessions, practice history)
+  2. **Analyze message intent**:
+     - Does student want to solve/practice something? → Generate question
+     - Does student want examples? → Generate question
+     - Is it a clarification question? → Provide explanation
+  3. Generate contextual response using OpenAI
+  4. If practice intent detected → Generate new multiple choice question
+  5. Return response with optional practice question
+- **Output**:
+  - `response`: AI response text
+  - `practiceQuestion`: Optional question object (if practice intent detected)
+    - Format: Multiple choice with 4 options
+  - `suggestions`: Optional cross-sell suggestions if applicable
+
+#### 2. Context Loading
+**Function**: `loadStudentContext`
+- Fetch student document (goals, gamification)
+- Fetch recent sessions (last 3-5) with transcripts and AI analysis
+- Fetch practice_items for question selection
+- Compile context object for AI prompt
+
+#### 3. Practice Question Generation
+**Function**: `generateChatPracticeQuestion`
+- **Always Generate New Question**: Use `generateSingleQuestion` from openai-handlers
+- **Format**: Multiple choice with exactly 4 options (A, B, C, D)
+- **Criteria**: 
+  - Match topic from student's sessions
+  - Based on session AI analysis (topics, struggles, strengths)
+  - Use different numbers/scenarios than previous questions
+- **Output**: Question object with:
+  - `questionText`: The question text
+  - `options`: Array of 4 strings (A, B, C, D)
+  - `correctAnswer`: The correct option letter (A, B, C, or D)
+  - `topic`: Topic from session
+  - `hint`: Optional hint referencing the session
+
+#### 4. Session-Based Cross-Sell
+**Function**: `getSessionBasedSuggestions`
+- Analyze student's completed sessions
+- Identify completed subjects
+- Suggest related subjects based on:
+  - Subject relationships (Chemistry → Physics, Biology)
+  - Student's learning path
+  - Not generic mappings, but personalized to their history
+
+### Frontend (React Components)
+
+#### 1. Chat Component
+**Location**: `src/components/Chat/Chat.tsx`
+
+**Features**:
+- Message list (student messages + AI responses)
+- **Conversation persistence**: Load existing conversation on mount, save in real-time
+- Input field for student messages
+- Practice question display (inline)
+- Answer input for practice questions (multiple choice selection)
+- **Celebration animations**: Sparkles when answer is correct
+- Cross-sell suggestion cards ("Do you want to try a new subject?")
+- Loading states
+- Error handling
+- **Reference**: Follow chat.dpg pattern for persistence (see Athena-Math repo)
+
+**UI Elements**:
+- Chat messages (bubbles)
+- Practice question card (inline in chat)
+- Answer validation feedback
+- Suggestion cards (clickable)
+- "Book session" button when needed
+
+#### 2. Practice Question Card (Already Exists)
+**Location**: `src/components/Chat/PracticeQuestionCard.tsx`
+- **Status**: Exists but needs updates
+- **Required Format**: 
+  - **Multiple Choice Only**: 4 options (A, B, C, D)
+  - No text input needed
+  - Student selects one option
+- **Enhancements**: 
+  - Show feedback inline after selection
+  - Display correct/incorrect immediately
+  - Show explanation if incorrect
+  - Mark correct answer if student got it wrong
+
+#### 3. Navigation Update
+**Location**: `src/components/Shared/Navigation.tsx`
+- Add "Chat" link to navigation
+
+#### 4. Routing Update
+**Location**: `src/App.tsx`
+- Add route: `/chat` → Chat component
+
+### Data Structure
+
+#### Conversation Document
+**Collection**: `conversations` (persists across page refreshes, like chat.dpg)
+
+**Structure**: One conversation per student (or multiple if needed)
+```typescript
+{
+  conversationId: string; // Auto-generated or studentId-based
+  studentId: string;
+  messages: Array<{
+    role: 'student' | 'assistant';
+    content: string;
+    timestamp: Timestamp;
+    practiceQuestion?: {
+      questionId: string;
+      questionText: string;
+      topic: string;
+      options: string[]; // 4 options (A, B, C, D)
+      correctAnswer: string; // 'A', 'B', 'C', or 'D'
+    };
+    answer?: {
+      studentAnswer: string; // 'A', 'B', 'C', or 'D'
+      isCorrect: boolean;
+      feedback: string;
+      // NO pointsAwarded - chat questions don't count
+    };
+    suggestions?: {
+      type: 'cross_sell' | 'new_subject';
+      subjects: string[];
+    };
+  }>;
+  lastMessageAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+**Persistence**: 
+- Conversation persists across page refreshes
+- Load existing conversation on component mount
+- Save messages in real-time to Firestore
+- Reference implementation: Athena-Math GitHub repo (https://github.com/MuradAles/Athena-Math)
+
+## User Experience
+
+### Chat Interface Layout
+```
+┌─────────────────────────────────────┐
+│  AI Study Companion - Chat         │
+├─────────────────────────────────────┤
+│                                     │
+│  [Student Message Bubble]          │
+│  [AI Response Bubble]              │
+│  [Practice Question Card]          │
+│  [Student Answer]                  │
+│  [AI Feedback]                     │
+│  [Cross-Sell Suggestion Card]      │
+│                                     │
+├─────────────────────────────────────┤
+│  [Message Input Field]  [Send]     │
+└─────────────────────────────────────┘
+```
+
+### Message Types
+1. **Text Messages**: Regular chat messages
+2. **Practice Questions**: Inline question cards
+3. **Answer Feedback**: Validation results
+4. **Suggestions**: Cross-sell or booking suggestions
+5. **Context References**: Links to specific session moments
+
+## Success Criteria
+
+1. ✅ Students can ask clarification questions about their sessions
+2. ✅ AI responses reference specific moments from student's sessions
+3. ✅ Students can request practice questions in chat
+4. ✅ Practice questions are based on student's actual session topics
+5. ✅ Questions are always generated new (never from practice_items)
+6. ✅ Cross-sell suggestions are based on student's session history (not generic)
+7. ✅ Chat interface is intuitive and responsive
+8. ✅ All questions/answers are tracked for analytics
+
+## Out of Scope (For Now)
+
+- Voice chat
+- Video explanations
+- Multi-language support
+- Real-time typing indicators
+- File attachments
+
+## Gamification Rules
+
+**Important**: Chat questions are **NOT** counted toward gamification
+- ❌ No points awarded for chat questions
+- ❌ No level progression from chat
+- ❌ No streak maintenance from chat
+- ❌ No daily goal progress from chat
+- ❌ No badges from chat
+- ✅ **Only practice page questions** count toward gamification
+- ✅ Chat questions show sparkles/celebration if correct (visual feedback only)
+
+## Implementation Priority
+
+### Phase 1: Core Chat (MVP)
+1. Build Chat component UI
+2. Implement `generateChatResponse` function
+3. Load student context (sessions, goals)
+4. Basic clarification responses
+
+### Phase 2: Practice Questions
+1. Add practice question generation in chat
+2. Support both generated and existing questions
+3. Answer validation and feedback
+
+### Phase 3: Session-Based Suggestions
+1. Implement session-based cross-sell logic
+2. Show suggestions in chat
+3. Track suggestion interactions
+
+### Phase 4: Enhancements
+1. Better context references
+2. Struggle detection
+3. Booking nudges
+4. Analytics tracking
+
+## Notes
+
+- **Key Principle**: Everything is based on the student's actual sessions, not generic knowledge
+- **Question Source**: **ALWAYS GENERATE NEW** - Never use existing practice_items
+- **Question Format**: Multiple choice with 4 options (A, B, C, D) - matches practice page
+- **Intent Detection**: AI must detect if student wants to practice/solve vs just clarify
+- **Cross-Sell**: Based on session history, not hardcoded mappings
+- **Clarification Focus**: Chat is primarily for understanding session content
+- **Practice Questions**: Always created fresh, based on session topics, with different numbers/scenarios
+- **Gamification**: Chat questions do NOT count - only practice page questions count
+- **Celebration**: Show sparkles if answer is correct (visual only, no points)
+- **Persistence**: Conversation persists across page refreshes (like chat.dpg)
+- **Reference**: See Athena-Math GitHub repo for chat implementation patterns (https://github.com/MuradAles/Athena-Math)
+- **Suggestions**: After answering question → "Do you want to try a new subject? Next thing?"
+

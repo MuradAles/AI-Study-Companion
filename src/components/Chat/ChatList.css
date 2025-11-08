@@ -1,0 +1,123 @@
+.chat-list {
+  width: 260px;
+  background: rgba(15, 23, 42, 0.8);
+  border-right: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-list-header {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.new-chat-button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.new-chat-button:hover:not(:disabled) {
+  background: #2563EB;
+  transform: translateY(-1px);
+}
+
+.new-chat-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.new-chat-icon {
+  font-size: 1.5rem;
+  font-weight: 300;
+}
+
+.chat-list-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.chat-list-loading,
+.chat-list-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #94A3B8;
+}
+
+.chat-list-empty p {
+  margin: 0.5rem 0;
+}
+
+.chat-list-empty-hint {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.chat-list-item {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chat-list-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.chat-list-item.active {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: #3B82F6;
+}
+
+.chat-list-item-title {
+  font-weight: 600;
+  color: #F8FAFC;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-list-item-preview {
+  font-size: 0.85rem;
+  color: #94A3B8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Scrollbar styling */
+.chat-list-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-list-items::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.chat-list-items::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 3px;
+}
+
+.chat-list-items::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+

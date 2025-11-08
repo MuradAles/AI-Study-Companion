@@ -5,7 +5,7 @@ import Practice from './components/Practice/Practice';
 import PracticeShared from './components/Practice/PracticeShared';
 import CreateSession from './components/Session/CreateSession';
 import SessionDetail from './components/Session/SessionDetail';
-import LearningPath from './components/LearningPath/LearningPath';
+import Chat from './components/Chat/Chat';
 import Login from './components/Login/Login';
 import './App.css';
 
@@ -27,7 +27,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/practice" element={<PracticeShared />} />
         <Route path="/practice-checkpoint" element={<Practice />} />
-        <Route path="/learning-path" element={<LearningPath />} />
+        <Route path="/chat" element={<Chat />} />
         <Route path="/create-session" element={<CreateSession />} />
         <Route path="/session/:sessionId" element={<SessionDetail />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

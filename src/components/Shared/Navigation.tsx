@@ -19,10 +19,10 @@ function Navigation() {
         Practice
       </Link>
       <Link 
-        to="/learning-path" 
-        className={location.pathname === '/learning-path' ? 'active' : ''}
+        to="/chat" 
+        className={location.pathname === '/chat' ? 'active' : ''}
       >
-        Learning Path
+        Chat
       </Link>
     </nav>
   );
