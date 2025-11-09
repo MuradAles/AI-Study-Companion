@@ -33,7 +33,8 @@
 3. **Backend Functions**
    - ✅ Transcript processing (`processTranscript`)
    - ✅ Question generation (`generateQuestions` - creates shared questions)
-   - ✅ Answer evaluation (`evaluateAnswer` - for shared questions)
+   - ✅ Answer evaluation (`evaluateAnswer` - for shared questions, improved with lenient evaluation and answer hiding)
+   - ✅ **Subject suggestions (`generateSubjectSuggestions`)** - AI-powered function that generates 3-4 related subject suggestions based on student progress
    - ✅ Chat response generation (`generateChatResponseFunction`)
    - ✅ Chat practice question generation (`generateChatPracticeQuestion`)
    - ✅ Chat answer validation (`validateChatAnswer`)
@@ -64,6 +65,10 @@
 ## Recent Changes
 
 ### Latest Implementation (Current Session - January 2025)
+- ✅ **Progress-Based AI Subject Suggestions** - Bulb icon button (💡) appears on subjects ≥50% complete, generates 3-4 related subject suggestions via AI, allows booking tutor appointments for new subjects
+- ✅ **Answer Evaluation Improvements** - More lenient evaluation (0.2 tolerance), never reveals correct answer when wrong, accepts multiple formats (decimals, fractions, expressions), provides encouraging feedback
+- ✅ **Practice Page Enhancements** - Input area stays visible after feedback, students can see their answer alongside feedback, "Try Again" button for incorrect answers, fixed flashing issue
+- ✅ **Navigation Consistency** - All pages (Dashboard, Practice, Chat, Learning Tree) now have consistent navigation with "AI Study Companion" title
 - ✅ **Chat System Refinements** - Removed practice questions from chat (chat is for help/clarification only)
 - ✅ **Math Rendering** - KaTeX/LaTeX support for math equations in chat and practice
 - ✅ **Step-by-Step Renderer** - Structured display of explanations with numbered steps

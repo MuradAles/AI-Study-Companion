@@ -24,7 +24,9 @@
 - [x] `validateChatAnswer` - Validates chat practice question answers
 - [x] `generateChatPracticeQuestion` - Generates new practice questions in chat
 - [x] `generateTutoringTranscript` - Generates realistic, subject-specific tutoring conversation transcripts using OpenAI for ANY subject (Math, English, Science, History, etc.)
-- [x] `generateQuestionsForTutor` - ✅ **NEW** - Generates exactly 3 questions for specific tutor/subject/difficulty combination
+- [x] `generateQuestionsForTutor` - Generates exactly 3 questions for specific tutor/subject/difficulty combination
+- [x] `generateSubjectSuggestions` - ✅ **NEW** - AI-powered function that generates 3-4 related subject suggestions based on student progress (≥50% completion)
+- [x] `evaluateAnswer` - ✅ **IMPROVED** - More lenient evaluation (0.2 tolerance), never reveals correct answer when wrong, accepts multiple formats
 - [x] `checkStudentHealthScheduled` - Daily retention automation
 - [x] `checkStudentHealthManual` - Manual health check
 - [x] `checkSingleStudentHealth` - Single student check
@@ -57,6 +59,7 @@
   - [x] Completion tracking with visual indicators
   - [x] Full-screen layout
   - [x] Kid-friendly design with animations and emojis
+  - [x] ✅ **Subject Suggestions** - Bulb icon button (💡) appears on subjects ≥50% complete, generates AI-powered subject suggestions, allows booking tutor appointments
 - [x] **Progress Dashboard** - Statistics, multi-subject progress, session history
 - [x] **Login** - Anonymous authentication with role selection (Student/Tutor)
 - [x] **Navigation** - Role-based navigation (different links for students vs tutors)
@@ -67,7 +70,7 @@
 
 ### Features ✅
 - [x] **Session Analysis** - AI analyzes transcripts and extracts insights
-- [x] **Practice Questions (Shared Pool)** - Auto-generated shared questions with AI feedback, visible to all students
+- [x] **Practice Questions (Shared Pool)** - Auto-generated shared questions with AI feedback, visible to all students, ✅ **IMPROVED** - More lenient evaluation, never reveals correct answer when wrong, input stays visible after feedback
 - [x] **Practice Questions (Per-Student)** - Scheduled practice items with checkpoint progression system
 - [x] **AI Chat** - ✅ FULLY IMPLEMENTED
   - [x] Context-aware conversations with session history
@@ -164,7 +167,13 @@
 
 ## 🔄 Recent Changes
 
-### Latest Updates (January 2025 - Learning Tree Feature)
+### Latest Updates (January 2025 - Subject Suggestions & Answer Evaluation)
+- ✅ **Progress-Based AI Subject Suggestions** - Bulb icon button appears on subjects ≥50% complete, generates 3-4 related subject suggestions via AI, allows booking tutor appointments for new subjects
+- ✅ **Answer Evaluation Improvements** - More lenient evaluation (0.2 tolerance), never reveals correct answer when wrong, accepts multiple formats (decimals, fractions, expressions), provides encouraging feedback
+- ✅ **Practice Page Enhancements** - Input area stays visible after feedback, students can see their answer alongside feedback, "Try Again" button for incorrect answers, fixed flashing issue
+- ✅ **Navigation Consistency** - All pages (Dashboard, Practice, Chat, Learning Tree) now have consistent navigation with "AI Study Companion" title
+
+### Previous Updates (January 2025 - Learning Tree Feature)
 - ✅ **Learning Tree Visualization** - Radial tree layout with D3.js showing Student → Subject → Tutor → Difficulty hierarchy
 - ✅ **Question Generation** - `generateQuestionsForTutor` function generates exactly 3 questions for specific tutor/subject/difficulty
 - ✅ **Question Solving in Tree** - Students can solve questions directly within the tree page without navigating away

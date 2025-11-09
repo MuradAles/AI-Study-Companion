@@ -5,6 +5,7 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import Navigation from '../Shared/Navigation';
+import BookMeetingModal from '../Dashboard/BookMeetingModal';
 import './LearningTree.css';
 
 interface TreeNode {
@@ -66,6 +67,12 @@ function LearningTree() {
   } | null>(null);
   const [subjectProgress, setSubjectProgress] = useState<SubjectProgress[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showSuggestionsModal, setShowSuggestionsModal] = useState(false);
+  const [selectedSubjectForSuggestions, setSelectedSubjectForSuggestions] = useState<string>('');
+  const [suggestedSubjects, setSuggestedSubjects] = useState<string[]>([]);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [prefilledSubject, setPrefilledSubject] = useState<string>('');
   const userId = currentUser?.uid || '';
 
   // Build tree function - extracted so it can be called manually
@@ -642,6 +649,43 @@ function LearningTree() {
     }
   };
 
+  const handleGenerateSuggestions = async (subject: string, percentage: number) => {
+    if (isGeneratingSuggestions) return;
+
+    setIsGeneratingSuggestions(true);
+    setSelectedSubjectForSuggestions(subject);
+    setSuggestedSubjects([]);
+
+    try {
+      const generateSuggestionsFunction = httpsCallable(functions, 'generateSubjectSuggestions');
+      const result = await generateSuggestionsFunction({
+        currentSubject: subject,
+        progressPercentage: Math.round(percentage),
+      });
+
+      const data = result.data as {
+        success: boolean;
+        suggestions: string[];
+        message: string;
+      };
+
+      if (data.success && data.suggestions) {
+        setSuggestedSubjects(data.suggestions);
+        setShowSuggestionsModal(true);
+      }
+    } catch {
+      // Error handled silently
+    } finally {
+      setIsGeneratingSuggestions(false);
+    }
+  };
+
+  const handleSelectSuggestion = (subject: string) => {
+    setPrefilledSubject(subject);
+    setShowSuggestionsModal(false);
+    setShowBookingModal(true);
+  };
+
   const handleSubmitAnswer = async () => {
     if (!selectedQuestion || !answer.trim() || isSubmitting) return;
 
@@ -700,6 +744,7 @@ function LearningTree() {
     return (
       <div className="learning-tree">
         <header className="tree-header">
+          <h1>AI Study Companion</h1>
           <Navigation />
         </header>
         <main className="tree-main">
@@ -715,6 +760,7 @@ function LearningTree() {
   return (
     <div className="learning-tree">
       <header className="tree-header">
+        <h1>AI Study Companion</h1>
         <Navigation />
       </header>
       <main className="tree-main">
@@ -747,6 +793,20 @@ function LearningTree() {
                   className={`progress-item ${subject.isComplete ? 'complete' : ''}`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
+                  {/* Show suggestion button for subjects >= 50% complete */}
+                  {subject.percentage >= 50 && !subject.isComplete && (
+                    <button
+                      className="suggest-icon-button"
+                      onClick={() => handleGenerateSuggestions(subject.subject, subject.percentage)}
+                      disabled={isGeneratingSuggestions}
+                      title="Get subject suggestions"
+                    >
+                      {isGeneratingSuggestions && selectedSubjectForSuggestions === subject.subject 
+                        ? '✨' 
+                        : '💡'}
+                    </button>
+                  )}
+
                   <div className="progress-circle-container">
                     <svg className="progress-circle" width="80" height="80">
                       {/* Background circle */}
@@ -1028,6 +1088,58 @@ function LearningTree() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Subject Suggestions Modal */}
+      {showSuggestionsModal && (
+        <div className="suggestions-modal-overlay" onClick={() => setShowSuggestionsModal(false)}>
+          <div className="suggestions-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="suggestions-modal-header">
+              <h2>✨ Suggested Subjects</h2>
+              <p>Based on your progress in {selectedSubjectForSuggestions}</p>
+              <button 
+                className="close-modal-button" 
+                onClick={() => setShowSuggestionsModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="suggestions-modal-body">
+              {suggestedSubjects.length > 0 ? (
+                <div className="suggestions-list">
+                  {suggestedSubjects.map((subject, index) => (
+                    <div 
+                      key={index}
+                      className="suggestion-card"
+                      onClick={() => handleSelectSuggestion(subject)}
+                    >
+                      <div className="suggestion-icon">📚</div>
+                      <div className="suggestion-name">{subject}</div>
+                      <div className="suggestion-action">Book Now →</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="suggestions-loading">
+                  <div className="spinner"></div>
+                  <p>Generating suggestions...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Book Meeting Modal with prefilled subject */}
+      {showBookingModal && (
+        <BookMeetingModal
+          onClose={() => {
+            setShowBookingModal(false);
+            setPrefilledSubject('');
+          }}
+          prefilledSubject={prefilledSubject}
+        />
       )}
     </div>
   );

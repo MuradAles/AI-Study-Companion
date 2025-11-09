@@ -260,6 +260,12 @@ function PracticeShared() {
     setFeedback(null);
   };
 
+  const handleTryAgain = () => {
+    setFeedback(null);
+    setAnswer('');
+    setShowHint(false);
+  };
+
   const handleSubmit = async () => {
     if (!answer.trim() || !selectedQuestion) return;
 
@@ -434,8 +440,8 @@ function PracticeShared() {
                 </div>
               )}
 
-              {/* Show input area if not solved yet or if they want to try again */}
-              {(!isAnswered || !userIsCorrect) && !feedback && (
+              {/* Show input area - always visible when feedback exists, or when not answered correctly */}
+              {(feedback || !isAnswered || !userIsCorrect) && (
                 <div className="answer-section">
                   <label className="answer-label">Your Answer:</label>
                   <textarea
@@ -443,7 +449,7 @@ function PracticeShared() {
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
                     placeholder="Type your answer here..."
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (feedback?.isCorrect === true)}
                     rows={6}
                   />
 
@@ -451,15 +457,16 @@ function PracticeShared() {
                     <button 
                       className="hint-button-modern"
                       onClick={() => setShowHint(!showHint)}
+                      disabled={feedback?.isCorrect === true}
                     >
                       💡 {showHint ? 'Hide' : 'Show'} Hint
                     </button>
                     <button
                       className="submit-button-modern"
                       onClick={handleSubmit}
-                      disabled={!answer.trim() || isSubmitting}
+                      disabled={!answer.trim() || isSubmitting || (feedback?.isCorrect === true)}
                     >
-                      {isSubmitting ? '⏳ Submitting...' : 'Submit Answer'}
+                      {isSubmitting ? '⏳ Submitting...' : feedback?.isCorrect ? '✅ Correct!' : 'Submit Answer'}
                     </button>
                   </div>
 
@@ -472,8 +479,8 @@ function PracticeShared() {
                 </div>
               )}
 
-              {/* Feedback after submission - only show if not already solved */}
-              {feedback && (!isAnswered || !userIsCorrect) && (
+              {/* Feedback after submission - show when feedback exists */}
+              {feedback && (
                 <div className={`feedback-section ${feedback.isCorrect ? 'correct' : 'incorrect'}`}>
                   <div className="feedback-header">
                     <h3>{feedback.isCorrect ? '✅ Correct!' : '❌ Not Quite'}</h3>
@@ -483,22 +490,31 @@ function PracticeShared() {
                   </div>
                   <div className="feedback-content">
                     <p>{feedback.message}</p>
-                    {selectedQuestion.correctAnswer && (
+                    {/* Only show correct answer when student's answer is correct */}
+                    {feedback.isCorrect && selectedQuestion.correctAnswer && (
                       <div className="correct-answer-box">
                         <strong>Correct Answer:</strong>
                         <p>{selectedQuestion.correctAnswer}</p>
                       </div>
                     )}
-                    {selectedQuestion.explanation && (
+                    {/* Only show explanation when answer is correct */}
+                    {feedback.isCorrect && selectedQuestion.explanation && (
                       <div className="explanation-box">
                         <strong>Explanation:</strong>
                         <p>{selectedQuestion.explanation}</p>
                       </div>
                     )}
                   </div>
-                  <button className="back-button-inline" onClick={handleBackToList}>
-                    Back to Questions
-                  </button>
+                  <div className="feedback-actions">
+                    {!feedback.isCorrect && (
+                      <button className="try-again-button" onClick={handleTryAgain}>
+                        🔄 Clear & Try Again
+                      </button>
+                    )}
+                    <button className="back-button-inline" onClick={handleBackToList}>
+                      Back to Questions
+                    </button>
+                  </div>
                 </div>
               )}
 

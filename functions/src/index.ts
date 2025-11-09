@@ -727,3 +727,53 @@ Make it authentic with actual problems, examples, or content from this subject!`
   }
 });
 
+/**
+ * Generate subject suggestions based on student's progress
+ * Callable function from client (Learning Tree)
+ */
+export const generateSubjectSuggestions = functions.https.onCall(async (data, context) => {
+  // Check authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { currentSubject, progressPercentage } = data;
+  const studentId = context.auth.uid;
+
+  if (!currentSubject || typeof progressPercentage !== 'number') {
+    throw new functions.https.HttpsError('invalid-argument', 'currentSubject and progressPercentage are required');
+  }
+
+  try {
+    // Get student's sessions to determine existing subjects
+    const sessionsSnapshot = await admin.firestore()
+      .collection('sessions')
+      .where('studentId', '==', studentId)
+      .get();
+
+    // Extract unique subjects from sessions
+    const existingSubjects = Array.from(
+      new Set(sessionsSnapshot.docs.map(doc => doc.data().subject).filter(Boolean))
+    ) as string[];
+
+    // Generate suggestions using OpenAI
+    const { generateSubjectSuggestionsAI } = require('./openai-handlers');
+    const suggestions = await generateSubjectSuggestionsAI({
+      currentSubject,
+      existingSubjects,
+      progressPercentage,
+    });
+
+    return {
+      success: true,
+      suggestions,
+      message: `Generated ${suggestions.length} subject suggestions!`,
+    };
+  } catch (error) {
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', `Failed to generate suggestions: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+});
+

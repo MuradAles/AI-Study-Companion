@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc, onSnapshot, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
@@ -227,6 +227,7 @@ function Chat() {
   return (
     <div className="chat">
       <header className="chat-top-header">
+        <h1>AI Study Companion</h1>
         <Navigation />
       </header>
       <main className="chat-main">

@@ -14,13 +14,14 @@ interface Booking {
 }
 
 interface BookMeetingModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   tutorName?: string;
   existingBooking?: Booking;
+  prefilledSubject?: string;
 }
 
-function BookMeetingModal({ isOpen, onClose, tutorName, existingBooking }: BookMeetingModalProps) {
+function BookMeetingModal({ isOpen = true, onClose, tutorName, existingBooking, prefilledSubject }: BookMeetingModalProps) {
   const { currentUser } = useAuth();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -30,7 +31,7 @@ function BookMeetingModal({ isOpen, onClose, tutorName, existingBooking }: BookM
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Initialize form with existing booking data
+  // Initialize form with existing booking data or prefilled subject
   useEffect(() => {
     if (existingBooking && isOpen) {
       const bookingDate = existingBooking.date?.toDate?.();
@@ -51,10 +52,10 @@ function BookMeetingModal({ isOpen, onClose, tutorName, existingBooking }: BookM
       // Reset form when opening without existing booking
       setSelectedDate('');
       setSelectedTime('');
-      setSubject('');
+      setSubject(prefilledSubject || '');
       setTopic('');
     }
-  }, [existingBooking, isOpen]);
+  }, [existingBooking, isOpen, prefilledSubject]);
 
   // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0];

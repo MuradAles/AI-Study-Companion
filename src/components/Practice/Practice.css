@@ -477,6 +477,34 @@
   color: var(--text);
 }
 
+.feedback-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.try-again-button {
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.try-again-button:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 .back-button-inline {
   padding: 0.75rem 1.5rem;
   background: var(--primary);
@@ -487,7 +515,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  align-self: flex-start;
 }
 
 .back-button-inline:hover {

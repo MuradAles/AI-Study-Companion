@@ -291,8 +291,17 @@ function extractSystemOfEquationsValues(answer: string): { x: number | null; y: 
  * Handles cases like "5√3" vs "8.66", "5kg" vs "5000g", etc.
  * Also handles systems of equations like "x=3.6, y=1.6" vs "x=18/5, y=8/5"
  */
-function areMathematicallyEquivalent(correctAnswer: string, studentAnswer: string, tolerance: number = 0.1): boolean {
-  // First, check if this is a system of equations (has x and y)
+function areMathematicallyEquivalent(correctAnswer: string, studentAnswer: string, tolerance: number = 0.15): boolean {
+  // Normalize strings first - case insensitive, trim whitespace
+  const correctNormalized = correctAnswer.trim().toLowerCase();
+  const studentNormalized = studentAnswer.trim().toLowerCase();
+  
+  // Quick check: if strings are identical after normalization, they're equivalent
+  if (correctNormalized === studentNormalized) {
+    return true;
+  }
+  
+  // Check if this is a system of equations (has x and y)
   const correctSystem = extractSystemOfEquationsValues(correctAnswer);
   const studentSystem = extractSystemOfEquationsValues(studentAnswer);
   
@@ -427,30 +436,38 @@ export async function evaluateAnswer(
   question: PracticeQuestion,
   studentAnswer: string
 ): Promise<AnswerEvaluation> {
-  const systemPrompt = `You are an encouraging tutor evaluating student answers. Be supportive but accurate. 
+  const systemPrompt = `You are an encouraging tutor evaluating student answers. Be LENIENT and supportive - if the answer is close or mathematically equivalent, mark it CORRECT.
 
-IMPORTANT FOR MATHEMATICAL ANSWERS:
-- Accept equivalent forms (e.g., 8.66 ≈ 5√3, 5*sqrt(3), 5√3, etc.)
-- Accept decimal approximations of exact values (e.g., 8.66 for 5√3 ≈ 8.66)
-- Accept answers in different formats (fractions, decimals, expressions)
-- Consider answers correct if they are mathematically equivalent, even if formatted differently
-- For numerical answers, allow small rounding differences (within 0.1)
+CRITICAL RULES:
+1. NEVER include the correct answer in your feedback
+2. Be VERY LENIENT with formatting and minor differences
+3. Accept mathematically equivalent answers (decimals, fractions, different notations)
+4. Allow rounding differences up to 0.2 (be generous!)
+5. For word answers, accept synonyms and reasonable variations
 
-CRITICAL FOR SYSTEMS OF EQUATIONS:
-- Accept answers in ANY format: "x=3.6, y=1.6", "x=3.6 and y=1.6", "(3.6, 1.6)", "x=18/5, y=8/5", etc.
-- Accept decimal equivalents (e.g., x=3.6 is equivalent to x=18/5)
-- Compare x and y values separately - both must match (within 0.1 tolerance)
-- If student provides "x=3.6 and y=1.6" and correct answer is "x=18/5, y=8/5", mark as CORRECT
-- Order doesn't matter: "x=3.6, y=1.6" is same as "y=1.6, x=3.6"
+MATHEMATICAL ANSWERS:
+- Accept equivalent forms: 8.66 ≈ 5√3 ≈ 5*sqrt(3) → ALL CORRECT
+- Accept decimal approximations: 8.66 for 5√3 → CORRECT
+- Accept fractions and decimals: 3.6 = 18/5 → CORRECT
+- Allow small rounding: 8.66 vs 8.65 → CORRECT
 
-Return a JSON object with these exact fields:
+SYSTEMS OF EQUATIONS:
+- Accept ANY format: "x=3.6, y=1.6" = "x=3.6 and y=1.6" = "(3.6, 1.6)" = "x=18/5, y=8/5"
+- Order doesn't matter: "x=3, y=4" = "y=4, x=3"
+- Decimal = Fraction equivalents
+
+WORD ANSWERS:
+- Accept synonyms: "increase" = "rise" = "grow"
+- Ignore capitalization and extra spaces
+- Accept reasonable variations
+
+Return JSON with these fields:
 {
   "isCorrect": boolean,
-  "feedback": string (1-2 sentences),
-  "partialCredit": number (0-1, optional, only if partially correct)
+  "feedback": string (1-2 encouraging sentences, NEVER reveal correct answer)
 }
 
-IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or explanatory text.`;
+CRITICAL: If wrong, give hints WITHOUT revealing the answer!`;
 
   const questionContext = question.passage 
     ? `Passage:\n${question.passage}\n\nQuestion: ${question.text}\nCorrect Answer: ${question.correctAnswer}\nStudent Answer: ${studentAnswer}\n\nEvaluate if the student's answer is mathematically equivalent to the correct answer, even if formatted differently. For systems of equations, compare x and y values separately - accept any format ("x=3.6, y=1.6", "x=3.6 and y=1.6", "(3.6, 1.6)", etc.).`
@@ -483,7 +500,7 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
       const isMathEquivalent = areMathematicallyEquivalent(
         question.correctAnswer,
         studentAnswer,
-        0.1 // Allow 0.1 tolerance for rounding
+        0.2 // Allow 0.2 tolerance for rounding
       );
       
       // If math.js says it's equivalent, override AI decision and mark as correct
@@ -507,14 +524,20 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
         // This is rare but can happen with edge cases
         return {
           isCorrect: false,
-          feedback: `Not quite. The correct answer is: ${question.correctAnswer}. Keep practicing!`,
+          feedback: 'Not quite. Review the question and try again - you\'re close!',
         };
       }
     }
 
+    // Ensure feedback never reveals the correct answer
+    let finalFeedback = response.feedback;
+    if (!response.isCorrect && finalFeedback.toLowerCase().includes('correct answer')) {
+      finalFeedback = 'Not quite. Review the question carefully and try again!';
+    }
+
     return {
       isCorrect: response.isCorrect,
-      feedback: response.feedback,
+      feedback: finalFeedback,
       partialCredit: response.partialCredit,
     };
   } catch (error) {
@@ -524,7 +547,7 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
       const isMathEquivalent = areMathematicallyEquivalent(
         question.correctAnswer,
         studentAnswer,
-        0.1
+        0.2
       );
       
       if (isMathEquivalent) {
@@ -546,8 +569,56 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
       isCorrect,
       feedback: isCorrect 
         ? 'Correct! Great job!' 
-        : `Not quite. The correct answer is: ${question.correctAnswer}. Keep practicing!`,
+        : 'Not quite. Take another look at the question and try again!',
     };
+  }
+}
+
+/**
+ * Generate subject suggestions based on student's current subject and progress
+ */
+export async function generateSubjectSuggestionsAI(params: {
+  currentSubject: string;
+  existingSubjects: string[];
+  progressPercentage: number;
+}): Promise<string[]> {
+  const { currentSubject, existingSubjects, progressPercentage } = params;
+
+  const systemPrompt = `You are an expert educational advisor. Based on a student's current subject and progress, suggest 3-4 related subjects they should explore next.
+
+REQUIREMENTS:
+- Suggest subjects that build on or complement the current subject
+- Consider natural learning progressions
+- Exclude subjects the student is already studying
+- Return subjects as simple, clear names (e.g., "Chemistry", "Physics", "Pre-Calculus")
+- Focus on subjects commonly taught in tutoring contexts
+
+Return JSON with this exact format:
+{
+  "suggestions": ["Subject 1", "Subject 2", "Subject 3", "Subject 4"]
+}`;
+
+  const userPrompt = `Current Subject: ${currentSubject}
+Progress: ${progressPercentage}% complete
+Already Studying: ${existingSubjects.length > 0 ? existingSubjects.join(', ') : 'None'}
+
+Suggest 3-4 new subjects this student should consider based on their progress in ${currentSubject}.`;
+
+  try {
+    const response = await callOpenAIJSON<{ suggestions: string[] }>(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      {
+        model: 'gpt-4o',
+        temperature: 0.7,
+      }
+    );
+
+    return response.suggestions || [];
+  } catch (error) {
+    throw error;
   }
 }
 
