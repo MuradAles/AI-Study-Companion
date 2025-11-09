@@ -140,10 +140,17 @@
   font-weight: 700;
 }
 
+/* Form Row - for side-by-side inputs */
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  flex: 1;
 }
 
 .form-group label {
@@ -155,9 +162,8 @@
   letter-spacing: 0.5px;
 }
 
-.date-input,
-.time-input,
-.topic-input {
+/* All inputs use same styling */
+.form-group input {
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 12px;
@@ -168,24 +174,19 @@
   width: 100%;
 }
 
-.date-input:focus,
-.time-input:focus,
-.topic-input:focus {
+.form-group input:focus {
   outline: none;
   border-color: var(--primary);
   background: rgba(59, 130, 246, 0.15);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.date-input:disabled,
-.time-input:disabled,
-.topic-input:disabled {
+.form-group input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.topic-input::placeholder,
-.time-input::placeholder {
+.form-group input::placeholder {
   color: var(--text);
   opacity: 0.5;
 }
@@ -237,8 +238,7 @@
   margin-top: 0.5rem;
 }
 
-.cancel-button,
-.submit-button {
+.form-actions button {
   flex: 1;
   padding: 0.75rem 1.5rem;
   border-radius: 12px;
@@ -271,15 +271,10 @@
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-.submit-button:disabled {
+.form-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-}
-
-.cancel-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Responsive */
@@ -293,13 +288,13 @@
     font-size: 1.5rem;
   }
 
-  .form-actions {
+  .form-row {
     flex-direction: column;
+    gap: 1.5rem;
   }
 
-  .cancel-button,
-  .submit-button {
-    width: 100%;
+  .form-actions {
+    flex-direction: column;
   }
 }
 

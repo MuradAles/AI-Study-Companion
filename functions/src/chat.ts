@@ -150,6 +150,73 @@ export async function loadStudentContext(studentId: string, subjectFilter?: stri
 }
 
 /**
+ * Identify the topic from conversation context using AI
+ * Matches the identified topic to session topics
+ */
+async function identifyTopicFromResponse(
+  conversationText: string,
+  sessionTopics: string[]
+): Promise<string | undefined> {
+  if (sessionTopics.length === 0) {
+    return undefined;
+  }
+
+  try {
+    // Use AI to identify which topic from the session the conversation is about
+    const systemPrompt = `You are an expert at identifying educational topics from student conversations.
+
+Given a conversation between a student and tutor, and a list of session topics, identify which EXACT topic from the session the conversation is currently discussing.
+
+CRITICAL RULES:
+- You MUST return ONLY a topic from the provided session topics list
+- Return the EXACT topic name as it appears in the list
+- If discussing equations, match to the specific type (linear equations, quadratic equations, etc.)
+- If discussing geometry, match to the specific geometry topic (perimeter, area, angles, etc.)
+- DO NOT return a topic that isn't in the list
+- If truly no topic matches, return null
+
+Return ONLY the topic name, nothing else.`;
+
+    const userPrompt = `Conversation: "${conversationText}"
+
+Available Session Topics (you MUST choose from this list ONLY):
+${JSON.stringify(sessionTopics, null, 2)}
+
+Which EXACT topic from the available session topics is this conversation about? Return ONLY the topic name from the list above.`;
+
+    const identifiedTopic = await callOpenAI(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      {
+        model: 'gpt-4o',
+        temperature: 0.1, // Lower temperature for more consistent matching
+        maxTokens: 50,
+      }
+    );
+
+    // Clean up the response
+    const topic = identifiedTopic.trim().replace(/^["']|["']$/g, '').replace(/null/i, '').trim();
+    
+    if (!topic) {
+      return undefined;
+    }
+    
+    // Verify it's actually in the session topics
+    const matchedTopic = sessionTopics.find(sessionTopic => 
+      sessionTopic.toLowerCase() === topic.toLowerCase() ||
+      sessionTopic.toLowerCase().includes(topic.toLowerCase()) ||
+      topic.toLowerCase().includes(sessionTopic.toLowerCase())
+    );
+
+    return matchedTopic || undefined;
+  } catch (error) {
+    return undefined;
+  }
+}
+
+/**
  * Generate a multiple choice question for chat
  * Always generates new question with 4 options (A, B, C, D)
  */
@@ -183,17 +250,49 @@ export async function generateChatPracticeQuestion(
     sessionDate: sessionWithAnalysis.date?.toDate().toISOString() || new Date().toISOString(),
   };
 
-  // Determine topic to use
-  const targetTopic = topic || analysis.topicsCovered?.[0] || 'general';
+  // Determine topic to use - prioritize matching to session topics from aiAnalysis.topicsCovered
+  // If topic provided, try to match it to a session topic
+  // Otherwise, use the first topic from the most recent session
+  // This ensures questions are based on session topics, not random
+  let targetTopic = topic;
+  
+  // If topic provided, try to match it to a session topic
+  if (targetTopic && analysis.topicsCovered && analysis.topicsCovered.length > 0) {
+    const topicLower = targetTopic.toLowerCase();
+    // Try to find exact match or partial match
+    const matchedSessionTopic = analysis.topicsCovered.find(sessionTopic => 
+      sessionTopic.toLowerCase() === topicLower ||
+      sessionTopic.toLowerCase().includes(topicLower) ||
+      topicLower.includes(sessionTopic.toLowerCase())
+    );
+    
+    if (matchedSessionTopic) {
+      targetTopic = matchedSessionTopic; // Use the exact session topic
+    } else {
+      // If no match, use the first topic from session
+      targetTopic = analysis.topicsCovered[0];
+    }
+  } else if (!targetTopic && analysis.topicsCovered && analysis.topicsCovered.length > 0) {
+    // No topic provided, use the first topic from the session
+    targetTopic = analysis.topicsCovered[0];
+  }
+  
+  if (!targetTopic) {
+    targetTopic = 'general';
+  }
+  
+  // Clean up topic name
+  targetTopic = targetTopic.trim();
   
   // Generate question using OpenAI with multiple choice format
   const systemPrompt = `You are an expert tutor creating a multiple choice practice question for chat.
 Generate 1 question with EXACTLY 4 options (A, B, C, D):
-- Based on the session topic: ${targetTopic}
+- **CRITICAL**: Question MUST be about the topic: "${targetTopic}"
+- **CRITICAL**: Do NOT use random topics - stick to "${targetTopic}"
 - Difficulty: medium
-- Use RANDOM and UNIQUE numbers/scenarios
-- Create a completely NEW scenario
-- Make it engaging and relevant to what the student learned
+- Use RANDOM and UNIQUE numbers/scenarios (but same topic)
+- Create a completely NEW scenario with different numbers
+- Make it engaging and relevant to what the student learned about "${targetTopic}"
 
 Return JSON object with this exact format:
 {
@@ -209,10 +308,25 @@ Return JSON object with this exact format:
 Subject: ${sessionContext.subject}
 Topic: ${targetTopic}
 
+Session Topics Available: ${JSON.stringify(analysis.topicsCovered || [])}
+
 Session Analysis:
 ${JSON.stringify(analysis, null, 2)}
 
-Generate 1 multiple choice question with 4 options:`;
+**CRITICAL INSTRUCTIONS - READ CAREFULLY:**
+- You MUST generate a question about "${targetTopic}" ONLY
+- This is the EXACT topic from the session: "${targetTopic}"
+- DO NOT use any other topic from the session topics list
+- DO NOT create questions about different topics (like systems of equations if topic is linear equations)
+- Examples:
+  * If topic is "solving linear equations with one variable", create a question like "Solve: 5x + 3 = 18"
+  * If topic is "solving equations with variables on both sides", create a question like "Solve: 3x + 5 = 2x + 9"
+  * If topic is "perimeter", create a question about calculating perimeter
+  * If topic is "systems of equations", create a question about solving systems
+- The question MUST test the exact concept: "${targetTopic}"
+- Use the EXACT topic provided: "${targetTopic}"
+
+Generate 1 multiple choice question with 4 options about "${targetTopic}" ONLY:`;
 
   // Call OpenAI to generate question
   const response = await callOpenAIJSON<{
@@ -321,35 +435,39 @@ export async function generateChatResponse(
     subjects: string[];
   };
 }> {
-  // Detect subject/topic from message for first message in conversation
+  // Detect subject/topic from ENTIRE conversation context, not just first message
   let subjectFilter: string | undefined;
-  if (conversationHistory.length === 0) {
-    // This is the first message - try to extract subject
-    const subjectKeywords = [
-      'geometry', 'algebra', 'calculus', 'trigonometry', 'statistics',
-      'physics', 'chemistry', 'biology',
-      'SAT', 'ACT', 'reading', 'writing', 'essay',
-      'math', 'science', 'english', 'literature'
-    ];
-    
-    const messageLower = message.toLowerCase();
-    const foundSubject = subjectKeywords.find(keyword => 
-      messageLower.includes(keyword.toLowerCase())
-    );
-    
-    if (foundSubject) {
-      subjectFilter = foundSubject;
-      console.log(`Detected subject filter: ${subjectFilter}`);
-    }
+  
+  const subjectKeywords = [
+    'sat math', 'act math', 'sat reading', 'act reading', // Multi-word first
+    'geometry', 'algebra', 'calculus', 'trigonometry', 'statistics',
+    'physics', 'chemistry', 'biology',
+    'equation', 'solve', 'quadratic', 'linear', 'polynomial', 'fraction',
+    'SAT', 'ACT', 'reading', 'writing', 'essay',
+    'math', 'science', 'english', 'literature'
+  ];
+  
+  // Combine ALL conversation messages to detect ongoing subject
+  const allConversationText = [
+    ...conversationHistory.map(m => m.content),
+    message
+  ].join(' ').toLowerCase();
+  
+  // Find the most specific subject match (check longer keywords first)
+  const sortedKeywords = [...subjectKeywords].sort((a, b) => b.length - a.length);
+  const foundSubject = sortedKeywords.find(keyword => 
+    allConversationText.includes(keyword.toLowerCase())
+  );
+  
+  if (foundSubject) {
+    subjectFilter = foundSubject;
   }
 
   const context = await loadStudentContext(studentId, subjectFilter);
   
-  // Detect intent: does student want to practice/solve something?
-  const practiceKeywords = ['practice', 'solve', 'example', 'question', 'problem', 'try', 'test'];
-  const wantsPractice = practiceKeywords.some(keyword => 
-    message.toLowerCase().includes(keyword)
-  );
+  // CHAT IS FOR HELP AND CLARIFICATION ONLY
+  // Practice questions are handled in the dedicated Practice component
+  // We do NOT generate practice questions in chat anymore
 
   // Build detailed context string for AI
   const recentSessionsText = context.recentSessions
@@ -382,19 +500,21 @@ HOW TO RESPOND:
 - Don't repeat "in your recent session" or "you learned this" - just teach!
 - Don't say "you're doing great" or "keep it up" unless they accomplish something
 - Only mention the tutor's name if it's genuinely relevant to the explanation
+- **ONLY generate a practice question if:**
+  - The student explicitly asks for practice/solve/question/problem
+  - OR you provide a worked example and want them to try a similar problem
+- **DO NOT generate practice questions for simple help requests or explanations**
 
 You have context about their recent learning:
 ${recentSessionsText}
 
 ${goalsText ? `Learning goals:\n${goalsText}` : ''}
 
-${wantsPractice ? '\nThe student wants to practice. After explaining, generate a practice question.' : ''}
-
 Just be a helpful, clear teacher. Answer their questions directly.`;
 
   const userPrompt = `Student message: "${message}"
 
-${wantsPractice ? 'Generate a helpful response, then create a practice question based on their session topics.' : 'Provide a helpful clarification or explanation.'}`;
+Provide a helpful clarification or explanation.`;
 
   // Call OpenAI for response
   const aiResponse = await callOpenAI(
@@ -408,19 +528,7 @@ ${wantsPractice ? 'Generate a helpful response, then create a practice question 
     }
   );
 
-  let practiceQuestion;
-  if (wantsPractice) {
-    try {
-      // Extract topic from message if mentioned
-      const topicMatch = message.match(/(?:from|about|on)\s+(\w+)/i);
-      const topic = topicMatch ? topicMatch[1] : undefined;
-      
-      practiceQuestion = await generateChatPracticeQuestion(studentId, topic);
-    } catch (error) {
-      console.error('Error generating practice question:', error);
-      // Continue without question if generation fails
-    }
-  }
+  // No practice questions in chat anymore - they belong in the Practice component
 
   // Check if we should show cross-sell suggestions
   // Show after 3 questions answered in conversation
@@ -436,13 +544,13 @@ ${wantsPractice ? 'Generate a helpful response, then create a practice question 
         };
       }
     } catch (error) {
-      console.error('Error getting suggestions:', error);
+      // Error handled silently
     }
   }
 
   return {
     response: aiResponse,
-    practiceQuestion,
+    // No practice questions in chat
     suggestions,
   };
 }

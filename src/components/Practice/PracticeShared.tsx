@@ -84,7 +84,6 @@ function PracticeShared() {
         setLoading(false);
       },
       (error) => {
-        console.error('Error loading questions:', error);
         setLoading(false);
       }
     );
@@ -95,11 +94,8 @@ function PracticeShared() {
   // Load user responses with real-time updates
   useEffect(() => {
     if (!userId) {
-      console.warn('⚠️ No userId found, cannot load user responses');
       return;
     }
-
-    console.log('🔍 Setting up user responses listener for userId:', userId);
     
     const responsesQuery = query(
       collection(db, 'user_responses'),
@@ -109,46 +105,14 @@ function PracticeShared() {
     const unsubscribe = onSnapshot(
       responsesQuery,
       (snapshot) => {
-        console.log(`📝 Received ${snapshot.docs.length} user response documents from Firestore`);
-        
-        // Log each response document with full details
-        snapshot.docs.forEach((doc, index) => {
-          const data = doc.data();
-          console.log(`Response ${index + 1}:`, {
-            questionId: data.questionId,
-            isCorrect: data.isCorrect,
-            attemptedAt: data.attemptedAt,
-            docId: doc.id
-          });
-        });
-        
         const responsesData = snapshot.docs.map(doc => {
           return doc.data() as UserResponse;
         });
         
-        // Check for duplicate question responses
-        const questionIdCounts = new Map<string, number>();
-        responsesData.forEach(r => {
-          questionIdCounts.set(r.questionId, (questionIdCounts.get(r.questionId) || 0) + 1);
-        });
-        
-        const duplicates = Array.from(questionIdCounts.entries()).filter(([, count]) => count > 1);
-        if (duplicates.length > 0) {
-          console.warn('⚠️ DUPLICATE RESPONSES FOUND:', duplicates.map(([qId, count]) => ({
-            questionId: qId,
-            responseCount: count,
-            allResponses: responsesData.filter(r => r.questionId === qId).map(r => ({
-              isCorrect: r.isCorrect,
-              attemptedAt: r.attemptedAt
-            }))
-          })));
-        }
-        
-        console.log('✅ Total user responses loaded:', responsesData.length);
         setUserResponses(responsesData);
       },
       (error) => {
-        console.error('❌ Error loading user responses:', error);
+        // Error loading user responses
       }
     );
 
@@ -157,15 +121,6 @@ function PracticeShared() {
 
   // Calculate acceptance rate for each question
   const questionsWithStats = useMemo(() => {
-    console.log('📊 Calculating question stats...');
-    console.log('Total questions:', questions.length);
-    console.log('User responses:', userResponses.length);
-    console.log('User responses data:', userResponses);
-    
-    // Log all response questionIds
-    console.log('🔑 All response question IDs:', userResponses.map(r => r.questionId));
-    console.log('🔑 All question IDs in list:', questions.map(q => q.id));
-    
     return questions.map(q => {
       const acceptanceRate = q.timesAttempted > 0 
         ? Math.round((q.timesCorrect / q.timesAttempted) * 100 * 10) / 10 
@@ -186,25 +141,6 @@ function PracticeShared() {
           // Otherwise use the most recent (last in array)
           userResponse = allUserResponses[allUserResponses.length - 1];
         }
-      }
-      
-      if (isAnswered && allUserResponses.length > 1) {
-        console.log(`🔄 MULTIPLE RESPONSES for Question ${q.id}:`, {
-          questionText: q.text.substring(0, 50) + '...',
-          totalResponses: allUserResponses.length,
-          responses: allUserResponses.map(r => ({ isCorrect: r.isCorrect, attemptedAt: r.attemptedAt })),
-          usingResponse: { isCorrect: userResponse?.isCorrect }
-        });
-      }
-      
-      if (isAnswered) {
-        const correctStatus = userResponse?.isCorrect ? '✅ CORRECT' : '❌ INCORRECT';
-        console.log(`${correctStatus} Question ${q.id} answered:`, {
-          questionText: q.text.substring(0, 50) + '...',
-          isCorrect: userResponse?.isCorrect,
-          userIsCorrect: userResponse?.isCorrect || false,
-          acceptanceRate: acceptanceRate + '%'
-        });
       }
       
       return {
@@ -306,25 +242,6 @@ function PracticeShared() {
   // Check for orphaned responses (responses without matching questions)
   const questionIds = new Set(questions.map(q => q.id));
   const orphanedResponses = userResponses.filter(r => !questionIds.has(r.questionId));
-  
-  if (orphanedResponses.length > 0) {
-    console.warn('⚠️ FOUND ORPHANED RESPONSES (no matching question):', orphanedResponses.map(r => ({
-      questionId: r.questionId,
-      isCorrect: r.isCorrect,
-      studentId: r.studentId
-    })));
-  }
-  
-  console.log('📈 Stats:', {
-    totalQuestions,
-    totalResponses: userResponses.length,
-    solvedCount: `${solvedCount} unique questions attempted`,
-    correctAnswers: `${correctAnswersCount} correct (✓)`,
-    incorrectAnswers: `${userResponses.length - correctAnswersCount} incorrect (○)`,
-    orphanedResponses: orphanedResponses.length,
-    myQuestionsCount,
-    uniqueQuestionIds: Array.from(new Set(userResponses.map(r => r.questionId)))
-  });
 
   // Handle question selection
   const handleSelectQuestion = (question: SharedQuestion) => {
@@ -361,9 +278,8 @@ function PracticeShared() {
         message: data.feedback,
         pointsAwarded: data.pointsAwarded,
       });
-    } catch (error) {
-      console.error('Error evaluating answer:', error);
-      setFeedback({
+      } catch (error) {
+        setFeedback({
         isCorrect: false,
         message: 'Error submitting answer. Please try again.',
         pointsAwarded: 0,
@@ -391,7 +307,6 @@ function PracticeShared() {
       
       setTimeout(() => setGenerateMessage(''), 5000);
     } catch (error) {
-      console.error('Error generating more questions:', error);
       setGenerateMessage('❌ Failed to generate questions. Please try again.');
       setTimeout(() => setGenerateMessage(''), 3000);
     } finally {

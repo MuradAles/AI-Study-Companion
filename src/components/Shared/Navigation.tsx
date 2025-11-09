@@ -45,6 +45,12 @@ function Navigation() {
       >
         Chat
       </Link>
+      <Link 
+        to="/tree" 
+        className={location.pathname === '/tree' ? 'active' : ''}
+      >
+        🌳 Learning Tree
+      </Link>
     </nav>
   );
 }

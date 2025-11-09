@@ -111,7 +111,6 @@ export async function sendBookingNudge(studentId: string, healthCheck: StudentHe
     const fcmToken = studentData.fcmToken;
 
     if (!fcmToken) {
-      console.log(`Student ${studentId} has no FCM token - skipping notification`);
       return;
     }
 
@@ -143,7 +142,6 @@ export async function sendBookingNudge(studentId: string, healthCheck: StudentHe
 
     // Send notification
     const response = await admin.messaging().send(message);
-    console.log(`✅ Successfully sent booking nudge to student ${studentId}:`, response);
 
     // Record notification in Firestore
     await admin.firestore().collection('notifications').add({
@@ -156,8 +154,6 @@ export async function sendBookingNudge(studentId: string, healthCheck: StudentHe
     });
 
   } catch (error: any) {
-    console.error(`❌ Error sending booking nudge to student ${studentId}:`, error);
-    
     // Handle invalid token errors
     if (error.code === 'messaging/invalid-registration-token' || 
         error.code === 'messaging/registration-token-not-registered') {
@@ -165,7 +161,6 @@ export async function sendBookingNudge(studentId: string, healthCheck: StudentHe
       await admin.firestore().collection('students').doc(studentId).update({
         fcmToken: admin.firestore.FieldValue.delete(),
       });
-      console.log(`Removed invalid FCM token for student ${studentId}`);
     }
     
     throw error;
@@ -203,12 +198,9 @@ export async function checkAllStudentsHealth(): Promise<{
         }
       } catch (error) {
         errors++;
-        console.error(`Error checking student ${doc.id}:`, error);
       }
     })
   );
-
-  console.log(`Health check complete: ${checked} checked, ${atRisk} at-risk, ${notified} notified, ${errors} errors`);
 
   return { checked, atRisk, notified, errors };
 }

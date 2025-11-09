@@ -272,11 +272,8 @@ function Practice() {
         setQuestionsCompleted(prev => {
           const newCount = prev + 1;
           
-          console.log(`Checkpoint ${checkpointId}: ${newCount}/3 correct answers`);
-          
           // Check if checkpoint is complete (3 correct answers)
           if (newCount >= 3) {
-            console.log(`Checkpoint ${checkpointId} completed!`);
             // Checkpoint completed - could show a success message here
           }
           
@@ -304,15 +301,14 @@ function Practice() {
 
       // TODO: Show celebration animations for level up, badges
       if (data.leveledUp) {
-        console.log('Level up!', data.newLevel);
+        // Level up
       }
       if (data.newBadges.length > 0) {
-        console.log('New badges!', data.newBadges);
+        // New badges
       }
 
       setAnswer('');
     } catch (error) {
-      console.error('Error submitting answer:', error);
       setFeedback({
         isCorrect: false,
         message: 'Error submitting answer. Please try again.',
@@ -388,7 +384,7 @@ function Practice() {
       updateDoc(doc(db, 'practice_items', currentItem.id), {
         status: 'completed',
       }).catch((error) => {
-        console.error('Error marking practice as completed:', error);
+        // Error marking practice as completed
       });
     }
     
@@ -746,7 +742,9 @@ function Practice() {
                   🎯 Daily Goal Complete!
                 </div>
               )}
-              <p className="feedback-message">{feedback.message}</p>
+              <p className="feedback-message">
+                <MathRenderer content={feedback.message} />
+              </p>
               <button onClick={handleNextQuestion} className="next-button">
                 {(() => {
                   // Check if there are more questions in current item
@@ -793,7 +791,7 @@ function Practice() {
               )}
 
               <div className="question-text">
-                <h2>{currentQuestion.text}</h2>
+                <h2><MathRenderer content={currentQuestion.text} /></h2>
               </div>
 
               <div className="answer-input-container">
@@ -816,7 +814,7 @@ function Practice() {
                 </button>
                 {showHint && (
                   <div className="hint-text">
-                    {currentQuestion.hint}
+                    <MathRenderer content={currentQuestion.hint} />
                   </div>
                 )}
               </div>

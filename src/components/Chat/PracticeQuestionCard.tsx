@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import MathRenderer from '../Shared/MathRenderer';
 
 interface PracticeQuestion {
   questionText: string;
@@ -38,7 +39,9 @@ function PracticeQuestionCard({ question, messageId, onAnswerSelect, disabled = 
   return (
     <div className="practice-question-card">
       <h4 className="question-title">📝 Practice Question</h4>
-      <p className="question-text">{question.questionText}</p>
+      <div className="question-text">
+        <MathRenderer content={question.questionText} />
+      </div>
       
       <div className="question-options">
         {question.options.map((option, index) => {
@@ -62,7 +65,9 @@ function PracticeQuestionCard({ question, messageId, onAnswerSelect, disabled = 
               disabled={showResult || disabled}
             >
               <span className="option-label">{label}</span>
-              <span className="option-text">{option}</span>
+              <span className="option-text">
+                <MathRenderer content={option} />
+              </span>
             </button>
           );
         })}
@@ -74,7 +79,9 @@ function PracticeQuestionCard({ question, messageId, onAnswerSelect, disabled = 
             {isCorrect ? '✅ Correct!' : `❌ Incorrect. The correct answer is ${question.correctAnswer}.`}
           </p>
           {question.explanation && (
-            <p className="result-explanation">{question.explanation}</p>
+            <p className="result-explanation">
+              <MathRenderer content={question.explanation} />
+            </p>
           )}
         </div>
       )}

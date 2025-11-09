@@ -67,6 +67,10 @@ Secondary: Tutoring platform administrators tracking student engagement metrics
 - ✅ Practice interface with immediate feedback
 - ✅ AI chat companion with session context (clarification-focused)
 - ✅ Practice question generation in chat (always new, multiple choice)
+- ✅ Learning Tree visualization (radial tree with D3.js)
+- ✅ On-demand question generation (always 3 questions per difficulty)
+- ✅ Question solving within learning tree
+- ✅ Subject progress tracking with circular progress bars
 - ✅ Gamification system (points, levels, badges, streaks)
 - ✅ Multi-subject progress tracking
 - ✅ Retention automation (notifications, cross-sell suggestions)

@@ -57,7 +57,6 @@ function ChatList({ selectedChatId, onSelectChat, onNewChat }: ChatListProps) {
       setConversations(chats);
       setLoading(false);
     }, (error) => {
-      console.error('Error loading conversations:', error);
       setConversations([]);
       setLoading(false);
     });
@@ -82,7 +81,7 @@ function ChatList({ selectedChatId, onSelectChat, onNewChat }: ChatListProps) {
       onSelectChat(newConv.id);
       onNewChat();
     } catch (error) {
-      console.error('Error creating new chat:', error);
+      // Error creating new chat
     }
   };
 

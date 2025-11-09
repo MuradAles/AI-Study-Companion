@@ -2,7 +2,7 @@
 
 ## Current Status
 
-**Project Stage:** ✅ Feature Complete - Booking & Tutor System  
+**Project Stage:** ✅ Feature Complete - Learning Tree Feature  
 **Completion:** ~99%  
 **Last Updated:** January 2025
 
@@ -23,7 +23,8 @@
 - [x] `generateChatResponseFunction` - AI chat responses with context
 - [x] `validateChatAnswer` - Validates chat practice question answers
 - [x] `generateChatPracticeQuestion` - Generates new practice questions in chat
-- [x] `generateTutoringTranscript` - ✅ **NEW** - Generates realistic, subject-specific tutoring conversation transcripts using OpenAI for ANY subject (Math, English, Science, History, etc.)
+- [x] `generateTutoringTranscript` - Generates realistic, subject-specific tutoring conversation transcripts using OpenAI for ANY subject (Math, English, Science, History, etc.)
+- [x] `generateQuestionsForTutor` - ✅ **NEW** - Generates exactly 3 questions for specific tutor/subject/difficulty combination
 - [x] `checkStudentHealthScheduled` - Daily retention automation
 - [x] `checkStudentHealthManual` - Manual health check
 - [x] `checkSingleStudentHealth` - Single student check
@@ -37,13 +38,25 @@
 - [x] **Practice Interface (Practice)** - Per-student practice items, checkpoint system, scheduled questions
 - [x] **Chat Interface** - ✅ FULLY IMPLEMENTED
   - [x] Message list with conversation history
-  - [x] Input field for student messages
+  - [x] Input field for student messages (fixed at bottom, doesn't move up)
   - [x] AI responses with session context
-  - [x] Practice question generation (always new, multiple choice)
-  - [x] Answer validation with visual feedback
+  - [x] Math rendering with KaTeX/LaTeX support
+  - [x] Step-by-step explanation renderer
   - [x] Cross-sell suggestions after 3 questions
   - [x] Conversation persistence (Firestore)
   - [x] Real-time updates
+  - [x] Subject filtering throughout entire conversation
+  - [x] Proper scrolling behavior (messages scroll, input stays fixed)
+  - [x] **Practice questions removed** - Chat is for help/clarification only
+- [x] **Learning Tree** - ✅ RECENTLY COMPLETED
+  - [x] Radial tree visualization with D3.js
+  - [x] Student → Subject → Tutor → Difficulty hierarchy
+  - [x] Question generation (always 3 questions per difficulty)
+  - [x] Question solving within tree page
+  - [x] Progress sidebar with circular progress bars per subject
+  - [x] Completion tracking with visual indicators
+  - [x] Full-screen layout
+  - [x] Kid-friendly design with animations and emojis
 - [x] **Progress Dashboard** - Statistics, multi-subject progress, session history
 - [x] **Login** - Anonymous authentication with role selection (Student/Tutor)
 - [x] **Navigation** - Role-based navigation (different links for students vs tutors)
@@ -58,12 +71,23 @@
 - [x] **Practice Questions (Per-Student)** - Scheduled practice items with checkpoint progression system
 - [x] **AI Chat** - ✅ FULLY IMPLEMENTED
   - [x] Context-aware conversations with session history
-  - [x] Clarification-focused responses
-  - [x] Practice question generation in chat
-  - [x] Multiple choice format (4 options A-D)
-  - [x] Answer validation with visual feedback
+  - [x] Clarification-focused responses (help and clarification only)
+  - [x] Math rendering with KaTeX/LaTeX support
+  - [x] Step-by-step explanation renderer
   - [x] Session-based cross-sell suggestions
   - [x] Conversation persistence
+  - [x] Subject filtering throughout entire conversation
+  - [x] Fixed layout and scrolling behavior
+  - [x] **Practice questions removed** - Chat is for help/clarification only
+- [x] **Learning Tree** - ✅ RECENTLY COMPLETED
+  - [x] Radial tree visualization with D3.js
+  - [x] Dynamic tree building from Firebase data (sessions, practice_items)
+  - [x] Question generation for specific tutor/subject/difficulty (always 3 questions)
+  - [x] Question solving within tree page
+  - [x] Subject progress sidebar with circular progress bars
+  - [x] Completion tracking and visual indicators
+  - [x] Question filtering by tutor/subject combination
+  - [x] Auto-refresh after question generation/solving
 - [x] **Progress Tracking** - Multi-subject dashboard with statistics
 - [x] **Gamification** - Points, levels, streaks, badges, daily goals
 - [x] **Retention Automation** - Detects at-risk students and sends notifications
@@ -140,7 +164,18 @@
 
 ## 🔄 Recent Changes
 
-### Latest Updates (January 2025 - Booking & Tutor System)
+### Latest Updates (January 2025 - Learning Tree Feature)
+- ✅ **Learning Tree Visualization** - Radial tree layout with D3.js showing Student → Subject → Tutor → Difficulty hierarchy
+- ✅ **Question Generation** - `generateQuestionsForTutor` function generates exactly 3 questions for specific tutor/subject/difficulty
+- ✅ **Question Solving in Tree** - Students can solve questions directly within the tree page without navigating away
+- ✅ **Progress Sidebar** - Circular progress bars for each subject showing completion ratio (completed/total questions)
+- ✅ **Question Filtering** - Questions are filtered by specific tutor/subject combination to prevent cross-contamination
+- ✅ **Tree Auto-Update** - Tree automatically rebuilds after generating questions or solving questions
+- ✅ **Completion Tracking** - Visual indicators (checkmarks, completion ratios) on difficulty nodes
+- ✅ **Full-Screen Layout** - Learning Tree page is full-screen with no header
+- ✅ **Kid-Friendly Design** - Animations, emojis, and visual feedback throughout
+
+### Previous Updates (January 2025 - Booking & Tutor System)
 - ✅ **Book a Meeting Feature** - Students can schedule meetings with tutors, selecting date, time, subject, and topic
 - ✅ **Tutor Dashboard** - Dedicated page for tutors to view pending bookings, accept them, and generate AI-powered fake sessions
 - ✅ **Role-Based Access Control** - Login with Student/Tutor role selection, separate dashboards and navigation
@@ -153,13 +188,16 @@
 
 ### Previous Updates (Chat System)
 - ✅ Implemented full chat system per PRD
-- ✅ Practice question generation in chat (always new, multiple choice)
+- ✅ Math rendering with KaTeX/LaTeX support
+- ✅ Step-by-step explanation renderer
 - ✅ Session-based context loading
 - ✅ Conversation persistence (Firestore)
-- ✅ Answer validation with visual feedback
 - ✅ Cross-sell suggestions after 3 questions
-- ✅ Intent detection for practice requests
-- ✅ Subject filtering on first message
+- ✅ Subject filtering throughout entire conversation (not just first message)
+- ✅ Fixed chat layout (input stays at bottom, doesn't move up)
+- ✅ Fixed scrolling behavior (messages scroll correctly)
+- ✅ Removed all alerts and console logs from production code
+- ❌ **Practice questions removed from chat** - Chat is for help/clarification only
 
 ### Previous Updates
 - ✅ Implemented cross-sell suggestions system
@@ -195,17 +233,18 @@
 - Chat component with conversation UI
 - Message sending and receiving
 - AI response generation with context
-- Practice question generation (always new)
-- Multiple choice format (4 options)
-- Answer validation
-- Visual feedback (sparkles)
+- Math rendering with KaTeX/LaTeX
+- Step-by-step explanation renderer
 - Cross-sell suggestions
 - Conversation persistence
 - Real-time updates
+- Subject filtering throughout conversation
+- Fixed layout and scrolling
+- **Practice questions removed** - Chat is for help/clarification only
 
 ### ⏳ Needs Testing
 - End-to-end chat flow with real sessions
-- Practice question generation accuracy
+- Math rendering accuracy across different equation formats
 - Cross-sell suggestion relevance
 - Conversation loading performance
 - Error handling edge cases

@@ -54,7 +54,6 @@ export async function callOpenAI(
     }
     return content;
   } catch (error) {
-    console.error('OpenAI API error:', error);
     throw new Error(`OpenAI API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -121,7 +120,6 @@ export async function callOpenAIJSON<T>(
     try {
       return JSON.parse(jsonString) as T;
     } catch (error) {
-      console.error('Failed to parse JSON response:', jsonString);
       throw new Error(`Failed to parse OpenAI JSON response: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

@@ -41,12 +41,8 @@ export async function createTestSession(
 
   try {
     const docRef = await addDoc(collection(db, 'sessions'), sessionData);
-    console.log('✅ Test session created:', docRef.id);
-    console.log('📝 Transcript will be processed automatically');
-    console.log('📚 Practice questions will be generated automatically');
     return docRef.id;
   } catch (error) {
-    console.error('❌ Error creating test session:', error);
     throw error;
   }
 }
@@ -107,11 +103,10 @@ Student: "Thanks! I think I understand it better now."`,
       // Wait a bit between sessions to avoid overwhelming functions
       await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
-      console.error(`Error creating session for ${session.subject}:`, error);
+      // Error creating session
     }
   }
 
-  console.log(`✅ Created ${createdSessions.length} test sessions`);
   return createdSessions;
 }
 
@@ -148,9 +143,7 @@ export async function updateStudentGoals(studentId: string) {
 
   try {
     await updateDoc(studentRef, { goals });
-    console.log('✅ Updated student goals');
   } catch (error) {
-    console.error('❌ Error updating goals:', error);
     throw error;
   }
 }

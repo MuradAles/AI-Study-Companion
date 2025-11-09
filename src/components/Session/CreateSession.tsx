@@ -50,7 +50,6 @@ function CreateSession({ onSuccess }: CreateSessionProps) {
       };
 
       const docRef = await addDoc(collection(db, 'sessions'), sessionData);
-      console.log('✅ Session created:', docRef.id);
       
       // Success - show success state and redirect
       setSuccessMessage('Session created successfully! The AI is analyzing your transcript. Practice questions will be available tomorrow.');
@@ -64,7 +63,6 @@ function CreateSession({ onSuccess }: CreateSessionProps) {
         }
       }, 2000);
     } catch (error: any) {
-      console.error('Error creating session:', error);
       setError(error.message || 'Failed to create session. Please try again.');
       setIsSubmitting(false);
     }

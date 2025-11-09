@@ -22,7 +22,6 @@ export function useUserRole() {
         const tutorDoc = await getDoc(tutorRef);
         
         if (tutorDoc.exists()) {
-          console.log('✅ Role: Tutor');
           setRole('tutor');
           setLoading(false);
           return;
@@ -33,17 +32,14 @@ export function useUserRole() {
         const studentDoc = await getDoc(studentRef);
         
         if (studentDoc.exists()) {
-          console.log('✅ Role: Student');
           setRole('student');
           setLoading(false);
           return;
         }
 
         // If neither exists, default to student
-        console.log('⚠️ No role document found, defaulting to student');
         setRole('student');
       } catch (error: any) {
-        console.error('❌ Error loading user role:', error);
         setRole('student'); // Default fallback
       } finally {
         setLoading(false);

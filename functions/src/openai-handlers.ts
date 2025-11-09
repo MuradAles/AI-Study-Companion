@@ -133,17 +133,6 @@ Generate 3 practice questions:`;
   // Handle both array and object formats
   const questions = Array.isArray(response) ? response : ('questions' in response ? response.questions : []);
   
-  // Log questions with correct answers for debugging
-  console.log(`📝 Generated ${questions.length} practice questions for ${sessionContext.subject}:`);
-  questions.forEach((q, idx) => {
-    console.log(`  Question ${idx + 1}: ${q.text}`);
-    console.log(`  ✅ Correct Answer: ${q.correctAnswer}`);
-    console.log(`  📊 Points Value: ${q.pointsValue}`);
-    console.log(`  🎯 Difficulty: ${q.difficulty}`);
-    console.log(`  📚 Topic: ${q.topic}`);
-    console.log('---');
-  });
-  
   // Add questionIds if not present
   return questions.map((q, idx) => ({
     ...q,
@@ -210,13 +199,6 @@ Generate 1 practice question:`;
 
   // Handle both object and direct question formats
   const question = 'question' in response ? response.question : response;
-  
-  // Log single question with correct answer for debugging
-  console.log(`📝 Generated single practice question for ${sessionContext.subject} (${difficulty}):`);
-  console.log(`  Question: ${question.text}`);
-  console.log(`  ✅ Correct Answer: ${question.correctAnswer}`);
-  console.log(`  📊 Points Value: ${question.pointsValue}`);
-  console.log(`  📚 Topic: ${question.topic}`);
   
   return {
     ...question,
@@ -508,7 +490,6 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
       if (isMathEquivalent && !response.isCorrect) {
         // The AI might have missed an equivalent answer
         // Use mathjs to validate and override the AI's decision
-        console.log(`Mathematical validation: "${studentAnswer}" is mathematically equivalent to "${question.correctAnswer}" - overriding AI decision`);
         return {
           isCorrect: true,
           feedback: 'Correct! Your answer is mathematically equivalent. Great job!',
@@ -516,7 +497,6 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
         };
       } else if (isMathEquivalent && response.isCorrect) {
         // Both agree it's correct, but enhance feedback if needed
-        console.log(`Mathematical validation: "${studentAnswer}" is mathematically equivalent to "${question.correctAnswer}" - confirmed correct`);
         return {
           isCorrect: true,
           feedback: response.feedback || 'Correct! Your answer is mathematically equivalent.',
@@ -525,7 +505,6 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
       } else if (!isMathEquivalent && response.isCorrect) {
         // Double-check: if math says it's not equivalent but AI says it is, trust math
         // This is rare but can happen with edge cases
-        console.log(`Mathematical validation: "${studentAnswer}" is NOT mathematically equivalent to "${question.correctAnswer}" - overriding AI decision`);
         return {
           isCorrect: false,
           feedback: `Not quite. The correct answer is: ${question.correctAnswer}. Keep practicing!`,
@@ -539,7 +518,6 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
       partialCredit: response.partialCredit,
     };
   } catch (error) {
-    console.error('Error in evaluateAnswer:', error);
     
     // Fallback: use mathematical validation with mathjs
     try {
@@ -555,8 +533,8 @@ IMPORTANT: Return ONLY valid JSON. Do not include any markdown formatting or exp
           feedback: 'Correct! Your answer is mathematically equivalent.',
         };
       }
-    } catch (mathError) {
-      console.error('Error in mathematical validation:', mathError);
+      } catch (mathError) {
+        // Error handled silently
     }
     
     // Final fallback: exact string match (case-insensitive)
@@ -658,8 +636,6 @@ NO additional text, ONLY the JSON array.`;
       pointsValue: difficulty === 'easy' ? 5 : difficulty === 'medium' ? 10 : 15,
     }));
   } catch (parseError) {
-    console.error('Error parsing similar questions response:', parseError);
-    console.error('Raw response:', response);
     throw new Error('Failed to parse AI response for similar questions');
   }
 }

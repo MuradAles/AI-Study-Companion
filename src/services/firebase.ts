@@ -16,32 +16,7 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
 };
 
-// Debug: Log config in development (check browser console)
-if (import.meta.env.DEV) {
-  console.log('Firebase Config:', {
-    projectId: firebaseConfig.projectId,
-    authDomain: firebaseConfig.authDomain,
-    hasApiKey: !!firebaseConfig.apiKey,
-  });
-  console.log('Environment variables:', {
-    VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  });
-  
-  // Warn if still using placeholder values
-  if (firebaseConfig.projectId && (
-    firebaseConfig.projectId.includes('your-project') || 
-    firebaseConfig.projectId === '' ||
-    firebaseConfig.projectId.length < 5
-  )) {
-    console.error('⚠️ WARNING: Invalid projectId detected!');
-    console.error('Current value:', firebaseConfig.projectId);
-    console.error('Please update .env with your actual Firebase project values.');
-    console.error('After updating, RESTART your dev server (stop and run npm run dev again).');
-  } else if (firebaseConfig.projectId) {
-    console.log('✅ Firebase project ID looks valid:', firebaseConfig.projectId);
-  }
-}
+// Firebase config validation happens silently
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -65,14 +40,13 @@ if ('Notification' in window && 'serviceWorker' in navigator) {
   try {
     messaging = getMessaging(app);
   } catch (error) {
-    console.warn('Firebase Cloud Messaging not available:', error);
+    // Firebase Cloud Messaging not available
   }
 }
 
 // Request notification permission and get FCM token
 export async function requestNotificationPermission(): Promise<string | null> {
   if (!messaging) {
-    console.warn('Firebase Cloud Messaging is not available');
     return null;
   }
 
@@ -81,17 +55,14 @@ export async function requestNotificationPermission(): Promise<string | null> {
     if (permission === 'granted') {
       const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY || '';
       if (!vapidKey) {
-        console.warn('VAPID key not configured');
         return null;
       }
       const token = await getToken(messaging, { vapidKey });
       return token;
     } else {
-      console.warn('Notification permission denied');
       return null;
     }
   } catch (error) {
-    console.error('Error getting notification token:', error);
     return null;
   }
 }

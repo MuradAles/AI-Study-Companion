@@ -121,26 +121,18 @@ useEffect(() => {
 1. **Student sends message** → `generateChatResponseFunction()` called
 2. **Context loading:**
    - Loads student's goals, recent sessions (last 5), practice history
-   - Optionally filters by subject if detected in first message
-3. **Intent detection:**
-   - Checks for practice keywords ("practice", "solve", "example", "question")
-   - If practice intent → generates new question
-4. **Response generation:**
+   - Filters by subject if detected in conversation (analyzes entire conversation history, not just first message)
+3. **Response generation:**
    - Uses OpenAI with session context
    - References specific moments from sessions
    - Provides clarification-focused answers
-5. **Practice question (if requested):**
-   - Always generates NEW question (never from practice_items)
-   - Multiple choice format (4 options A-D)
-   - Based on session topics
-6. **Answer validation:**
-   - `validateChatAnswer()` function
-   - Visual feedback (sparkles if correct)
-   - NO gamification points/badges/levels
-7. **Cross-sell suggestions:**
+   - Renders math equations with KaTeX/LaTeX
+   - Formats step-by-step explanations
+4. **Cross-sell suggestions:**
    - After 3 questions answered in conversation
    - Based on actual session history
    - Shows related subjects
+5. **Note:** Practice questions have been removed from chat - chat is for help/clarification only
 
 **Conversation Persistence:**
 - Conversations stored in `conversations/{conversationId}` collection
@@ -185,17 +177,28 @@ All gamification data stored in `students/{studentId}/gamification`:
 - Checkpoint-based system (3 correct answers per checkpoint)
 - Questions organized by session and topic
 - Status tracked: `pending` → `completed` → `skipped`
+- **Also used by Learning Tree** - Questions displayed and solved within tree visualization
 
-**Chat Practice Questions:**
-- Always generates NEW questions (never from either pool)
-- Multiple choice format (4 options A-D)
-- Based on student's actual session topics
-- Visual feedback only, NO gamification
+**Chat System:**
+- Chat is for help and clarification only
+- Math rendering with KaTeX/LaTeX support
+- Step-by-step explanation renderer
+- Subject filtering throughout entire conversation
+- **Practice questions removed** - Students should use Practice page for questions
+
+**Learning Tree Questions:**
+- Questions fetched from `practice_items` and `questions` collections
+- Filtered by specific tutor/subject/difficulty combination
+- Can be generated on-demand via `generateQuestionsForTutor` function
+- Always generates exactly 3 questions per difficulty level
+- Questions solved directly within tree page
+- Tree auto-updates after generation/solving
 
 **Benefits:**
 - Shared pool: Students benefit from others' sessions, question diversity increases
 - Per-student items: Personalized scheduling, checkpoint progression
 - Chat questions: Always fresh, context-aware, no gamification conflicts
+- Learning Tree: Visual learning journey, on-demand generation, integrated solving
 
 ### 8. Notification System
 
@@ -278,6 +281,60 @@ AI chat companion loads:
 - Questions appear when available
 - Status tracked: `pending` → `completed` → `skipped`
 
+### 12. Learning Tree Architecture
+
+**Radial Tree Visualization with D3.js**
+
+**Tree Structure:**
+- **Student** (center) → **Subject** → **Tutor** → **Difficulty** (Easy/Medium/Hard)
+- Built dynamically from Firebase data (`sessions`, `practice_items`, `questions`)
+- No "topics" level - simplified to avoid complexity and counting issues
+
+**Data Flow:**
+1. Fetch all sessions for student
+2. Group by subject, then by tutor
+3. Collect questions from `practice_items` and `questions` collections
+4. Filter by tutor's sessionIds and subject
+5. Group by difficulty level
+6. Build D3 hierarchy and render radial tree
+
+**Question Generation:**
+- `generateQuestionsForTutor` callable function
+- Takes: `subject`, `tutorName`, `difficulty`, `count` (default: 3)
+- Finds student's sessions with that tutor/subject
+- Uses session's AI analysis to generate questions
+- Always generates exactly `count` questions (3) for specified difficulty
+- Adds questions to `practice_items` collection
+- Tree auto-rebuilds after generation
+
+**Question Filtering:**
+- Questions filtered by: `studentId`, `subject`, `tutorName`, `sessionId` (must match tutor's sessions)
+- Prevents questions from different tutors/subjects appearing together
+- Ensures each difficulty node shows only relevant questions
+
+**Question Solving:**
+- Questions can be solved directly within tree page
+- Uses `evaluateAnswer` function for validation
+- Updates completion status in real-time
+- Tree rebuilds after solving to update counts
+- Completed questions show submitted answer (no "View in Practice Page" button)
+
+**Progress Tracking:**
+- Subject progress sidebar on right side
+- Circular progress bars for each subject
+- Shows completion ratio (completed/total questions)
+- Calculated across all tutors within a subject
+- Kid-friendly animations and emojis
+- Suggests new subjects when 100% complete
+
+**Visual Features:**
+- Full-screen layout (no header)
+- Adaptive spacing based on number of nodes
+- Zoom and pan functionality (follows mouse)
+- Color-coded nodes by type (student, subject, tutor, difficulty)
+- Completion indicators (checkmarks, ratios)
+- Kid-friendly design with animations
+
 ## Component Relationships
 
 ### React Component Hierarchy
@@ -304,6 +361,11 @@ App
 │   ├── AnswerInput (text input)
 │   ├── FeedbackDisplay (AI feedback)
 │   └── CelebrationAnimation (achievements)
+├── LearningTree
+│   ├── D3RadialTree (visualization)
+│   ├── QuestionListModal (questions for difficulty)
+│   ├── QuestionDetailModal (solve question)
+│   └── ProgressSidebar (subject progress)
 ├── ChatInterface
 │   ├── ChatList (conversation history)
 │   ├── MessageList (conversation messages)
@@ -434,15 +496,9 @@ const wantsPractice = practiceKeywords.some(keyword =>
 - Messages array with full history
 - Real-time sync via Firestore listener
 
-### Practice Question Generation
-- Always generates NEW question
-- Uses `generateSingleQuestion` from openai-handlers
-- Multiple choice format enforced (4 options)
-- Topic extracted from message or uses session topic
-- Different numbers/scenarios each time
-
-### Answer Validation
-- Simple comparison for multiple choice
-- AI-generated feedback for explanation
-- Visual sparkles animation if correct
-- NO gamification updates
+### Chat Features
+- Math rendering with KaTeX/LaTeX (`MathRenderer` component)
+- Step-by-step explanations (`StepByStepRenderer` component)
+- Subject filtering throughout entire conversation (not just first message)
+- Fixed layout (input stays at bottom, messages scroll correctly)
+- **Practice questions removed** - Chat is for help/clarification only

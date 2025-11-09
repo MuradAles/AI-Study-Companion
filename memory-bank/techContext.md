@@ -50,6 +50,9 @@ ai-study-companion/
 │   │   │   ├── Chat.tsx       # Main chat component
 │   │   │   ├── ChatList.tsx   # Conversation list
 │   │   │   └── PracticeQuestionCard.tsx # Inline practice questions
+│   │   ├── LearningTree/      # Learning tree visualization
+│   │   │   ├── LearningTree.tsx # Main tree component with D3.js
+│   │   │   └── LearningTree.css # Tree-specific styles
 │   │   ├── Progress/          # Progress tracking dashboard
 │   │   ├── Session/           # Session creation and detail views
 │   │   ├── Login/             # Authentication
@@ -129,7 +132,11 @@ OPENAI_API_KEY=... (server-side only)
   "react": "^19.1.1",
   "react-dom": "^19.1.1",
   "firebase": "^12.5.0",
-  "react-router-dom": "^7.9.5"
+  "react-router-dom": "^7.9.5",
+  "d3": "^7.8.5",
+  "@types/d3": "^7.4.3",
+  "katex": "^0.16.11",
+  "react-katex": "^3.0.1"
 }
 ```
 
@@ -173,6 +180,7 @@ OPENAI_API_KEY=... (server-side only)
 - `generateChatResponseFunction()` - Client calls with conversation context
 - `validateChatAnswer()` - Client calls to validate chat practice question answers
 - `generateMoreQuestions()` - Generate similar questions
+- `generateQuestionsForTutor()` - Generate exactly 3 questions for specific tutor/subject/difficulty
 
 **Triggered Functions (Firestore Events):**
 - `processTranscript()` - Firestore onCreate trigger (sessions)
@@ -468,9 +476,12 @@ service cloud.firestore {
 - Conversation persistence via Firestore
 - Real-time updates via `onSnapshot`
 - Context loading optimized (last 5 sessions)
-- Subject filtering on first message
-- Practice questions always generated new
-- Multiple choice format enforced (4 options)
+- Subject filtering throughout entire conversation (not just first message)
+- Math rendering with KaTeX/LaTeX (`react-katex` library)
+- Step-by-step explanation renderer (`StepByStepRenderer` component)
+- Fixed layout with proper flexbox behavior (input stays at bottom)
+- Proper scrolling behavior (messages container scrolls, input fixed)
+- **Practice questions removed** - Chat is for help/clarification only
 
 ### Question Pool
 - Shared questions collection
@@ -482,5 +493,11 @@ service cloud.firestore {
 ### Gamification
 - Server-side calculation
 - Real-time updates via listeners
-- Chat questions excluded from gamification
+- Chat questions excluded from gamification (practice questions removed from chat)
 - Only practice page questions count
+
+### Code Quality
+- All alerts removed from production code
+- All console logs removed from production code
+- Errors handled silently with appropriate fallbacks
+- Clean, production-ready codebase

@@ -135,7 +135,6 @@ function BookMeetingModal({ isOpen, onClose, tutorName, existingBooking }: BookM
         setTopic('');
       }, 2000);
     } catch (error: any) {
-      console.error('Error booking meeting:', error);
       setError(error.message || 'Failed to book meeting. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -193,35 +192,31 @@ function BookMeetingModal({ isOpen, onClose, tutorName, existingBooking }: BookM
             </div>
           )}
 
-          <div className="form-group">
-            <label htmlFor="meeting-date">Select Date *</label>
-            <input
-              id="meeting-date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              min={today}
-              max={maxDateStr}
-              required
-              disabled={isSubmitting}
-              className="date-input"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="meeting-time">Select Time *</label>
-            <input
-              id="meeting-time"
-              type="time"
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-              required
-              disabled={isSubmitting}
-              className="time-input"
-            />
-            <small className="form-hint">
-              Choose a time that works for you
-            </small>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="meeting-date">Select Date *</label>
+              <input
+                id="meeting-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                min={today}
+                max={maxDateStr}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="meeting-time">Select Time *</label>
+              <input
+                id="meeting-time"
+                type="time"
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
 
           <div className="form-group">
@@ -234,7 +229,6 @@ function BookMeetingModal({ isOpen, onClose, tutorName, existingBooking }: BookM
               placeholder="e.g., Algebra, SAT, Calculus, Geometry..."
               required
               disabled={isSubmitting}
-              className="subject-input"
             />
             <small className="form-hint">
               Enter the main subject (e.g., Math, English, SAT Prep)
@@ -250,7 +244,6 @@ function BookMeetingModal({ isOpen, onClose, tutorName, existingBooking }: BookM
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g., quadratic equations, essay writing..."
               disabled={isSubmitting}
-              className="topic-input"
             />
             <small className="form-hint">
               Add specific details about what you need help with

@@ -2,7 +2,7 @@
 
 ## Current Status
 
-**Project Phase:** ✅ Feature Complete - Booking & Tutor System  
+**Project Phase:** ✅ Feature Complete - Learning Tree Feature  
 **Last Updated:** January 2025  
 **Next Milestone:** Production Deployment & Testing
 
@@ -13,7 +13,7 @@
 1. **Core Infrastructure**
    - ✅ Firebase project fully configured
    - ✅ Firestore database with security rules
-   - ✅ Firebase Functions (8+ functions)
+   - ✅ Firebase Functions (9+ functions including `generateQuestionsForTutor`)
    - ✅ Firebase Hosting ready
    - ✅ Cloud Messaging integrated
 
@@ -22,6 +22,7 @@
    - ✅ Practice interface with hints and feedback (shared questions)
    - ✅ Chat interface with AI responses (✅ IMPLEMENTED)
    - ✅ Progress dashboard with multi-subject view
+   - ✅ **Learning Tree** - Radial tree visualization with D3.js (✅ RECENTLY COMPLETED)
    - ✅ Authentication flow with role selection (Student/Tutor)
    - ✅ Session creation and detail views
    - ✅ **BookMeetingModal** - Students can book meetings with date, time, subject, and topic selection
@@ -37,18 +38,22 @@
    - ✅ Chat practice question generation (`generateChatPracticeQuestion`)
    - ✅ Chat answer validation (`validateChatAnswer`)
    - ✅ **Tutoring transcript generation (`generateTutoringTranscript`)** - OpenAI-powered function that creates realistic, subject-specific conversation transcripts for ANY subject
+   - ✅ **Question generation for tutor (`generateQuestionsForTutor`)** - Generates exactly 3 questions for specific tutor/subject/difficulty combination
    - ✅ Retention automation (`checkStudentHealth`)
    - ✅ Cross-sell suggestions (`onGoalCompletion`, `getSessionBasedSuggestions`)
 
 4. **Chat System (Recently Enhanced)**
    - ✅ Chat component with conversation persistence
    - ✅ Session-based context loading
-   - ✅ Clarification-focused responses
-   - ✅ Practice question generation in chat (always new, multiple choice)
-   - ✅ Answer validation with visual feedback
+   - ✅ Clarification-focused responses (help and clarification only)
+   - ✅ Math rendering with KaTeX/LaTeX support
+   - ✅ Step-by-step explanation renderer
    - ✅ Cross-sell suggestions after 3 questions
    - ✅ Conversation history stored in Firestore
    - ✅ Real-time updates via Firestore listeners
+   - ✅ Subject filtering throughout entire conversation (not just first message)
+   - ✅ Fixed chat layout and scrolling (input stays at bottom, messages scroll correctly)
+   - ❌ **Practice questions removed from chat** - Chat is for help/clarification only
 
 5. **Automation & Notifications**
    - ✅ Daily health checks
@@ -59,6 +64,23 @@
 ## Recent Changes
 
 ### Latest Implementation (Current Session - January 2025)
+- ✅ **Chat System Refinements** - Removed practice questions from chat (chat is for help/clarification only)
+- ✅ **Math Rendering** - KaTeX/LaTeX support for math equations in chat and practice
+- ✅ **Step-by-Step Renderer** - Structured display of explanations with numbered steps
+- ✅ **Chat Layout Fixes** - Fixed input moving up issue, proper scrolling behavior
+- ✅ **Subject Filtering Enhancement** - Now filters throughout entire conversation, not just first message
+- ✅ **Code Cleanup** - Removed all alerts and console logs from production code
+- ✅ **Learning Tree Visualization** - Radial tree layout with D3.js showing Student → Subject → Tutor → Difficulty hierarchy
+- ✅ **Question Generation in Tree** - Generate exactly 3 questions for specific tutor/subject/difficulty combination
+- ✅ **Question Solving in Tree** - Solve questions directly within the tree page without navigating away
+- ✅ **Progress Sidebar** - Circular progress bars for each subject showing completion ratio (completed/total questions)
+- ✅ **Question Filtering** - Questions filtered by specific tutor/subject combination (no cross-contamination)
+- ✅ **Tree Auto-Update** - Tree automatically rebuilds after generating questions or solving questions
+- ✅ **Completion Tracking** - Visual indicators (checkmarks, completion ratios) on difficulty nodes
+- ✅ **Full-Screen Layout** - Learning Tree page is full-screen with no header
+- ✅ **Kid-Friendly Design** - Animations, emojis, and visual feedback throughout
+
+### Previous Implementation (Booking & Tutor System)
 - ✅ **Book a Meeting Feature** - Students can book meetings with tutors, selecting date, time, subject, and topic
 - ✅ **Tutor Dashboard** - Dedicated page for tutors to view and accept booking requests
 - ✅ **Role-Based Access Control** - Login flow with Student/Tutor role selection, separate dashboards and navigation
@@ -71,11 +93,12 @@
 
 ### Previous Implementation
 - ✅ Chat system fully implemented per PRD
-- ✅ Practice question generation in chat (multiple choice, 4 options)
 - ✅ Session-based cross-sell logic
 - ✅ Conversation persistence (like chat.dpg pattern)
-- ✅ Chat answer validation with visual feedback
-- ✅ Intent detection for practice requests
+- ✅ Math rendering with KaTeX/LaTeX
+- ✅ Step-by-step explanation rendering
+- ✅ Subject filtering throughout conversation
+- ❌ Practice questions removed from chat (chat is for help/clarification only)
 
 ### Code Quality
 - ✅ All TypeScript compiles successfully
@@ -95,13 +118,14 @@
 7. **Deployment:** Firebase Hosting ✅
 
 ### Chat System Decisions
-1. **Question Source:** Always generate new (never from `questions` or `practice_items` collections) ✅
-2. **Question Format:** Multiple choice with 4 options (A-D) ✅
-3. **Gamification:** Chat questions show visual feedback only, NO points ✅
+1. **Purpose:** Chat is for help and clarification only, NOT for practice questions ✅
+2. **Math Support:** KaTeX/LaTeX rendering for math equations in messages ✅
+3. **Step-by-Step:** Structured explanations with numbered steps ✅
 4. **Persistence:** Conversations stored in Firestore (`conversations` collection), loaded on mount ✅
-5. **Context:** Loads last 5 sessions, filters by subject if detected ✅
+5. **Context:** Loads last 5 sessions, filters by subject throughout entire conversation ✅
 6. **Cross-Sell:** Shows after 3 questions answered in conversation (session-based analysis) ✅
 7. **ChatList:** Sidebar component for managing multiple conversations ✅
+8. **Layout:** Fixed input at bottom, messages scroll correctly ✅
 
 ### Practice System Architecture
 1. **Dual Systems:** Shared pool (`questions`) + Per-student items (`practice_items`) ✅

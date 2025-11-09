@@ -1,29 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { collection, doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import Navigation from '../Shared/Navigation';
 import ChatList from './ChatList';
-import PracticeQuestionCard from './PracticeQuestionCard';
+import MathRenderer from '../Shared/MathRenderer';
+import StepByStepRenderer from '../Shared/StepByStepRenderer';
 import './Chat.css';
 
 interface ChatMessage {
   role: 'student' | 'assistant';
   content: string;
   timestamp: Timestamp | Date;
-  practiceQuestion?: {
-    questionId: string;
-    questionText: string;
-    topic: string;
-    options: string[]; // 4 options (A, B, C, D)
-    correctAnswer: string; // 'A', 'B', 'C', or 'D'
-  };
-  answer?: {
-    studentAnswer: string;
-    isCorrect: boolean;
-    feedback: string;
-  };
   suggestions?: {
     type: 'cross_sell' | 'new_subject';
     subjects: string[];
@@ -37,8 +26,7 @@ function Chat() {
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState('New Chat');
-  const [showSparkles, setShowSparkles] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const userId = currentUser?.uid || '';
 
   // Load specific conversation
@@ -58,12 +46,10 @@ function Chat() {
         }));
         setMessages(loadedMessages);
       } else {
-        console.error('Conversation not found');
         setConversationId(null);
         setMessages([]);
       }
     } catch (error) {
-      console.error('Error loading conversation:', error);
       setConversationId(null);
       setMessages([]);
     }
@@ -97,8 +83,22 @@ function Chat() {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Scroll the messages container to bottom, not the entire page
+    // Use setTimeout to ensure DOM has updated
+    const scrollToBottom = () => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    };
+    
+    // Immediate scroll
+    scrollToBottom();
+    
+    // Also scroll after a tiny delay to catch any async DOM updates
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [messages, loading]);
 
   // Save conversation to Firestore
   const saveConversation = async (updatedMessages: ChatMessage[]) => {
@@ -138,7 +138,7 @@ function Chat() {
 
       await setDoc(conversationRef, updateData, { merge: true });
     } catch (error) {
-      console.error('Error saving conversation:', error);
+      // Error saving conversation
     }
   };
 
@@ -193,7 +193,6 @@ function Chat() {
         role: 'assistant',
         content: responseData.response,
         timestamp: new Date(),
-        practiceQuestion: responseData.practiceQuestion,
         suggestions: responseData.suggestions,
       };
 
@@ -202,7 +201,6 @@ function Chat() {
       setMessages(finalMessages);
       await saveConversation(finalMessages);
     } catch (error) {
-      console.error('Error sending message:', error);
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
@@ -216,70 +214,6 @@ function Chat() {
     }
   };
 
-  // Handle answer selection for practice question
-  const handleAnswerSelect = async (messageIndex: number, selectedAnswer: string) => {
-    const message = messages[messageIndex];
-    if (!message.practiceQuestion) return;
-
-    const { questionId, correctAnswer } = message.practiceQuestion;
-    const isCorrect = selectedAnswer === correctAnswer;
-
-    // Show sparkles if correct
-    if (isCorrect) {
-      setShowSparkles(true);
-      setTimeout(() => setShowSparkles(false), 2000);
-    }
-
-    // Call Firebase function to validate answer
-    try {
-      const validateAnswer = httpsCallable(functions, 'validateChatAnswer');
-      const result = await validateAnswer({
-        questionId,
-        correctAnswer,
-        studentAnswer: selectedAnswer,
-      });
-
-      const validationData = result.data as {
-        isCorrect: boolean;
-        feedback: string;
-      };
-
-      // Update message with answer
-      const updatedMessages = [...messages];
-      updatedMessages[messageIndex] = {
-        ...message,
-        answer: {
-          studentAnswer: selectedAnswer,
-          isCorrect: validationData.isCorrect,
-          feedback: validationData.feedback,
-        },
-      };
-
-      setMessages(updatedMessages);
-      await saveConversation(updatedMessages);
-
-      // Check if we should show cross-sell suggestions after 3 questions
-      const questionsAnswered = updatedMessages.filter(m => m.answer).length;
-      if (questionsAnswered >= 3 && !updatedMessages.some(m => m.suggestions)) {
-        // Generate suggestions (this would be done server-side, but for now we'll add it here)
-        // The server should handle this in generateChatResponse
-      }
-    } catch (error) {
-      console.error('Error validating answer:', error);
-      // Fallback feedback
-      const updatedMessages = [...messages];
-      updatedMessages[messageIndex] = {
-        ...message,
-        answer: {
-          studentAnswer: selectedAnswer,
-          isCorrect,
-          feedback: isCorrect ? 'Correct! Great job!' : `Incorrect. The correct answer is ${correctAnswer}.`,
-        },
-      };
-      setMessages(updatedMessages);
-      await saveConversation(updatedMessages);
-    }
-  };
 
   // Handle suggestion click
   const handleSuggestionClick = (subject: string) => {
@@ -317,11 +251,11 @@ function Chat() {
               </div>
             </div>
           ) : (
-            <>
+            <div className="chat-content-wrapper">
               <div className="chat-header-title">
                 <h3>{conversationTitle}</h3>
               </div>
-              <div className="chat-messages">
+              <div className="chat-messages" ref={messagesContainerRef}>
                 {messages.length === 0 && (
                   <div className="chat-welcome">
                     <p>👋 Hi! What would you like help with?</p>
@@ -332,34 +266,11 @@ function Chat() {
               <div key={index} className={`chat-message ${message.role}`}>
                 {message.role === 'student' ? (
                   <div className="message-bubble student-bubble">
-                    {message.content}
+                    <MathRenderer content={message.content} />
                   </div>
                 ) : (
                   <div className="message-bubble assistant-bubble">
-                      {message.content}
-                      {message.practiceQuestion && (
-                        <div className="practice-question-wrapper">
-                          <PracticeQuestionCard
-                            question={{
-                              questionText: message.practiceQuestion.questionText,
-                              options: message.practiceQuestion.options,
-                              correctAnswer: message.practiceQuestion.correctAnswer,
-                              userAnswer: message.answer?.studentAnswer,
-                              isCorrect: message.answer?.isCorrect,
-                              explanation: message.answer?.feedback,
-                            }}
-                            messageId={`msg-${index}`}
-                            onAnswerSelect={(answer) => handleAnswerSelect(index, answer)}
-                            disabled={!!message.answer}
-                          />
-                        </div>
-                      )}
-                      {message.answer && (
-                        <div className={`answer-feedback ${message.answer.isCorrect ? 'correct' : 'incorrect'}`}>
-                          {message.answer.isCorrect && <span className="sparkles">✨</span>}
-                          <p>{message.answer.feedback}</p>
-                        </div>
-                      )}
+                      <StepByStepRenderer content={message.content} />
                       {message.suggestions && message.suggestions.subjects.length > 0 && (
                         <div className="suggestions-card">
                           <p className="suggestions-title">💡 Want to try something new?</p>
@@ -392,35 +303,12 @@ function Chat() {
                 </div>
               </div>
             )}
-                <div ref={messagesEndRef} />
               </div>
-              {showSparkles && (
-            <div className="sparkles-animation">
-              {[...Array(20)].map((_, i) => {
-                const angle = (i / 20) * 360;
-                const distance = 80;
-                const x = 50 + Math.cos(angle * Math.PI / 180) * distance;
-                const y = 50 + Math.sin(angle * Math.PI / 180) * distance;
-                return (
-                  <span 
-                    key={i} 
-                    className="sparkle"
-                    style={{
-                      '--x': x,
-                      '--y': y,
-                    } as React.CSSProperties}
-                  >
-                    ✨
-                  </span>
-                );
-              })}
-            </div>
-          )}
             <div className="chat-input-container">
               <input
                 type="text"
                 className="chat-input"
-                placeholder={conversationId ? "Ask a question or request practice..." : "Click 'New Chat' to start"}
+                placeholder={conversationId ? "Ask a question..." : "Click 'New Chat' to start"}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={(e) => {
@@ -439,7 +327,7 @@ function Chat() {
                 Send
               </button>
             </div>
-          </>
+            </div>
           )}
         </div>
       </main>

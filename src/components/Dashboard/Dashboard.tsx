@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { doc, onSnapshot, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDocs, limit, updateDoc, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,16 @@ import './Dashboard.css';
 interface Student {
   id: string;
   name: string;
+  goals?: Array<{
+    goalId: string;
+    subject: string;
+    status: 'active' | 'completed' | 'paused';
+  }>;
+  crossSellSuggestions?: Array<{
+    completedSubject: string;
+    suggestions: string[];
+    createdAt: any;
+  }>;
   gamification: {
     totalPoints: number;
     currentStreak: number;
@@ -52,6 +62,18 @@ interface Achievement {
   target?: number;
 }
 
+interface Notification {
+  id: string;
+  type: 'booking_nudge' | 'cross_sell' | 'streak_reminder' | 'practice_reminder' | 'achievement';
+  title: string;
+  body: string;
+  read: boolean;
+  sentAt: any;
+  suggestions?: string[];
+  completedSubject?: string;
+  sessionCount?: number;
+}
+
 function Dashboard() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -65,6 +87,8 @@ function Dashboard() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
 
   const userId = currentUser?.uid || '';
 
@@ -81,7 +105,6 @@ function Dashboard() {
         setLoading(false);
       },
       (error) => {
-        console.error('Error loading student:', error);
         setLoading(false);
       }
     );
@@ -256,6 +279,31 @@ function Dashboard() {
     loadData();
   }, [userId]);
 
+  // Load notifications for booking nudges and cross-sell
+  useEffect(() => {
+    if (!userId) return;
+
+    const notificationsQuery = query(
+      collection(db, 'notifications'),
+      where('studentId', '==', userId),
+      where('read', '==', false),
+      orderBy('sentAt', 'desc'),
+      limit(10)
+    );
+
+    const unsubscribeNotifications = onSnapshot(notificationsQuery, (snapshot) => {
+      const notificationsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Notification[];
+      setNotifications(notificationsData);
+    }, (error) => {
+      // Error handled silently
+    });
+
+    return unsubscribeNotifications;
+  }, [userId]);
+
   // Calculate achievements
   useEffect(() => {
     const stars = Math.floor(questionsAnswered / 3);
@@ -385,6 +433,33 @@ function Dashboard() {
     setSelectedSession(null);
   };
 
+  // Get booking nudge notification (most recent unread)
+  const bookingNudge = notifications.find(n => n.type === 'booking_nudge' && !dismissedBanners.has(n.id));
+
+  // Get cross-sell suggestions from student document or notifications
+  const crossSellNotification = notifications.find(n => n.type === 'cross_sell' && !dismissedBanners.has(n.id));
+  const crossSellFromStudent = student?.crossSellSuggestions?.[0];
+  const crossSellData = crossSellNotification || crossSellFromStudent;
+  const crossSellId = crossSellNotification?.id || 'cross-sell-student';
+
+  // Check if student is at risk (<3 sessions by Day 7)
+  const isAtRisk = bookingNudge !== undefined;
+
+  // Handle banner dismissal
+  const handleDismissBanner = (bannerId: string) => {
+    setDismissedBanners(prev => new Set(prev).add(bannerId));
+    // Mark notification as read
+    const notificationRef = doc(db, 'notifications', bannerId);
+    updateDoc(notificationRef, { read: true });
+  };
+
+  // Handle cross-sell subject click
+  const handleCrossSellClick = (subject: string) => {
+    // Navigate to booking modal with suggested subject
+    handleBookMeeting();
+    // Could pre-fill subject in modal if needed
+  };
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -438,6 +513,89 @@ function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* Booking Nudge Banner (<3 sessions by Day 7) */}
+          {isAtRisk && bookingNudge && (
+            <div className="banner booking-nudge-banner">
+              <div className="banner-content">
+                <div className="banner-icon">📚</div>
+                <div className="banner-text">
+                  <h3 className="banner-title">{bookingNudge.title}</h3>
+                  <p className="banner-body">{bookingNudge.body}</p>
+                  {bookingNudge.sessionCount !== undefined && (
+                    <p className="banner-subtitle">
+                      You've completed {bookingNudge.sessionCount} session(s). Students who book 3+ in week 1 see 40% better results!
+                    </p>
+                  )}
+                </div>
+                <div className="banner-actions">
+                  <button 
+                    className="banner-button primary"
+                    onClick={() => handleBookMeeting()}
+                  >
+                    Book Next Session →
+                  </button>
+                  <button 
+                    className="banner-dismiss"
+                    onClick={() => handleDismissBanner(bookingNudge.id)}
+                    aria-label="Dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cross-Sell Banner (Goal Completion) */}
+          {crossSellData && crossSellData.suggestions && crossSellData.suggestions.length > 0 && (
+            <div className="banner cross-sell-banner">
+              <div className="banner-content">
+                <div className="banner-icon">🎉</div>
+                <div className="banner-text">
+                  <h3 className="banner-title">
+                    {crossSellData.completedSubject 
+                      ? `Congrats on completing ${crossSellData.completedSubject}!`
+                      : 'Want to try something new?'}
+                  </h3>
+                  <p className="banner-body">Students like you often enjoy:</p>
+                  <div className="suggestions-grid">
+                    {crossSellData.suggestions.map((subject, idx) => (
+                      <button
+                        key={idx}
+                        className="suggestion-chip"
+                        onClick={() => handleCrossSellClick(subject)}
+                      >
+                        {subject}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="banner-actions">
+                  <button 
+                    className="banner-button secondary"
+                    onClick={() => navigate('/progress')}
+                  >
+                    View Progress →
+                  </button>
+                  <button 
+                    className="banner-dismiss"
+                    onClick={() => {
+                      if (crossSellNotification) {
+                        handleDismissBanner(crossSellId);
+                      } else {
+                        // If from student document, just hide it
+                        setDismissedBanners(prev => new Set(prev).add(crossSellId));
+                      }
+                    }}
+                    aria-label="Dismiss"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Today's Goal and Book Meeting */}
           <div className="top-row">

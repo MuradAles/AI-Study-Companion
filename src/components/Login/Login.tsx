@@ -29,13 +29,11 @@ function Login() {
           setIsSubmitting(false);
           return;
         }
-        console.log('Submitting signup with role:', userRole); // Debug log
         await signUp(email, password, displayName.trim(), userRole);
       } else {
         await signIn(email, password);
       }
     } catch (error: any) {
-      console.error('Auth error:', error);
       let errorMessage = 'An error occurred. Please try again.';
       
       if (error.code === 'auth/user-not-found') {

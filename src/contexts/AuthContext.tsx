@@ -58,8 +58,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw new Error('Role must be either "student" or "tutor"');
     }
 
-    console.log('Signing up user with role:', role);
-
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (userCredential.user) {
       await updateProfile(userCredential.user, { displayName: displayName.trim() });
@@ -91,7 +89,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             },
           },
         });
-        console.log('✅ Student account created');
       } else if (role === 'tutor') {
         // Create tutor document - simple, just name, email, role
         const tutorRef = doc(db, 'tutors', userCredential.user.uid);
@@ -101,7 +98,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           role: 'tutor',
           createdAt: Timestamp.now(),
         });
-        console.log('✅ Tutor account created');
       }
     }
   };

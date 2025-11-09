@@ -65,7 +65,6 @@ function SessionDetail() {
         setSession(sessionData);
         setLoading(false);
       } catch (err) {
-        console.error('Error loading session:', err);
         setError('Failed to load session');
         setLoading(false);
       }

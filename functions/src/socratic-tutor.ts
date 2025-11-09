@@ -148,7 +148,6 @@ Return ONLY a JSON object:
     const result = JSON.parse(cleanedResponse);
     return result;
   } catch (error) {
-    console.error('Error parsing validation response:', error);
     throw new Error('Failed to validate answer');
   }
 }

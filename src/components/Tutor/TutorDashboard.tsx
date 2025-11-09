@@ -77,7 +77,7 @@ function TutorDashboard() {
             } as Student;
           }
         } catch (error) {
-          console.error(`Error loading student ${studentId}:`, error);
+          // Error loading student
         }
       }
 
@@ -122,10 +122,8 @@ function TutorDashboard() {
         acceptedAt: Timestamp.now(),
       });
 
-      alert('✅ Booking accepted! You can now generate a fake session for testing.');
     } catch (error) {
-      console.error('Error accepting booking:', error);
-      alert('Failed to accept booking. Please try again.');
+      // Error handled silently
     }
   };
 
@@ -144,8 +142,7 @@ function TutorDashboard() {
       });
       // Note: The booking will disappear from the list due to the filter
     } catch (error) {
-      console.error('Error removing booking:', error);
-      alert('Failed to remove booking. Please try again.');
+      // Error handled silently
     }
   };
 
@@ -156,8 +153,7 @@ function TutorDashboard() {
       const tutorName = currentUser.displayName || 'Tutor';
       const studentName = students[booking.studentId]?.name || 'Student';
 
-      // Show loading message
-      alert('🎨 Generating realistic tutoring session with AI... This may take a moment.');
+      // Generating session
 
       // Get or create goalId for the student  
       const studentDoc = await getDoc(doc(db, 'students', booking.studentId));
@@ -170,7 +166,6 @@ function TutorDashboard() {
       }
 
       // Generate realistic conversation using OpenAI via Firebase Cloud Function
-      console.log(`🤖 Calling OpenAI to generate transcript for ${booking.subject} - ${booking.topic || 'General'}...`);
       const generateTranscript = httpsCallable(functions, 'generateTutoringTranscript');
       const result = await generateTranscript({
         studentName,
@@ -180,8 +175,6 @@ function TutorDashboard() {
       });
 
       const { conversation } = result.data as { conversation: Array<{speaker: string; message: string; timestamp: string}> };
-      
-      console.log(`✅ Generated ${conversation.length} conversation exchanges`);
       
       // Convert conversation array to transcript string format for Firebase Function
       const transcript = conversation.map((msg: {speaker: string; message: string; timestamp: string}) => {
@@ -207,13 +200,8 @@ function TutorDashboard() {
       };
 
       const sessionRef = await addDoc(collection(db, 'sessions'), sessionData);
-      
-      console.log(`✅ Fake session created with ID: ${sessionRef.id}`);
-      console.log(`🔄 Firebase Cloud Functions will now analyze transcript and generate practice questions...`);
-      alert('✅ AI-generated session created! Firebase is analyzing and creating practice questions...');
     } catch (error) {
-      console.error('Error generating fake session:', error);
-      alert(`Failed to generate fake session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Error handled silently
     }
   };
 

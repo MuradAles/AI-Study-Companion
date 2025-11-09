@@ -9,6 +9,7 @@ import SessionDetail from './components/Session/SessionDetail';
 import Chat from './components/Chat/Chat';
 import TutorDashboard from './components/Tutor/TutorDashboard';
 import Login from './components/Login/Login';
+import LearningTree from './components/LearningTree/LearningTree';
 import './App.css';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
         <Route path="/practice" element={<PracticeShared />} />
         <Route path="/practice-checkpoint" element={<Practice />} />
         <Route path="/chat" element={<Chat />} />
+        <Route path="/tree" element={<LearningTree />} />
         <Route path="/create-session" element={<CreateSession />} />
         <Route path="/session/:sessionId" element={<SessionDetail />} />
             <Route path="/tutor" element={<Navigate to="/dashboard" replace />} />

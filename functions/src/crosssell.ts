@@ -56,7 +56,6 @@ export async function sendCrossSellNotification(
     const fcmToken = studentData.fcmToken;
 
     if (!fcmToken) {
-      console.log(`Student ${studentId} has no FCM token - skipping notification`);
       // Still create notification document for in-app display
       await admin.firestore().collection('notifications').add({
         studentId,
@@ -100,7 +99,6 @@ export async function sendCrossSellNotification(
 
     // Send notification
     const response = await admin.messaging().send(message);
-    console.log(`✅ Successfully sent cross-sell notification to student ${studentId}:`, response);
 
     // Record notification in Firestore
     await admin.firestore().collection('notifications').add({
@@ -115,8 +113,6 @@ export async function sendCrossSellNotification(
     });
 
   } catch (error: any) {
-    console.error(`❌ Error sending cross-sell notification to student ${studentId}:`, error);
-    
     // Handle invalid token errors
     if (error.code === 'messaging/invalid-registration-token' || 
         error.code === 'messaging/registration-token-not-registered') {
@@ -124,7 +120,6 @@ export async function sendCrossSellNotification(
       await admin.firestore().collection('students').doc(studentId).update({
         fcmToken: admin.firestore.FieldValue.delete(),
       });
-      console.log(`Removed invalid FCM token for student ${studentId}`);
     }
     
     // Still create notification document for in-app display
@@ -140,7 +135,7 @@ export async function sendCrossSellNotification(
         read: false,
       });
     } catch (notifError) {
-      console.error('Error creating notification document:', notifError);
+      // Error handled silently
     }
   }
 }
@@ -168,7 +163,6 @@ export async function processGoalCompletion(studentId: string, completedGoal: {
   const suggestions = getCrossSellSuggestions(completedGoal.subject, existingGoals);
 
   if (suggestions.length === 0) {
-    console.log(`No cross-sell suggestions for ${completedGoal.subject}`);
     return;
   }
 
@@ -182,7 +176,6 @@ export async function processGoalCompletion(studentId: string, completedGoal: {
     .get();
 
   if (!notificationsQuery.empty) {
-    console.log(`Cross-sell notification already sent for ${completedGoal.subject}`);
     return;
   }
 

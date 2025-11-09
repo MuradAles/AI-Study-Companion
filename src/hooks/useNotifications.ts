@@ -34,7 +34,6 @@ export function useNotifications() {
               await updateDoc(studentRef, {
                 fcmToken: token,
               });
-              console.log('✅ FCM token saved to student document');
             }
           } else if (Notification.permission === 'granted') {
             // Get existing token
@@ -51,7 +50,7 @@ export function useNotifications() {
           }
         }
       } catch (error) {
-        console.error('Error registering notifications:', error);
+        // Error registering notifications
       }
     };
 
@@ -63,8 +62,6 @@ export function useNotifications() {
     if (!currentUser) return;
 
     const unsubscribe = onForegroundMessage((payload) => {
-      console.log('Foreground message received:', payload);
-      
       // Show notification if app is in foreground
       if ('Notification' in window && Notification.permission === 'granted') {
         const notification = payload.notification;

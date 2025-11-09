@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, Timestamp, doc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp, doc, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Navigation from '../Shared/Navigation';
 import './Progress.css';
 
@@ -11,6 +12,12 @@ interface Goal {
   status: string;
   sessionsCompleted: number;
   targetSessions: number;
+}
+
+interface CrossSellSuggestion {
+  completedSubject: string;
+  suggestions: string[];
+  createdAt: any;
 }
 
 interface TranscriptAnalysis {
@@ -38,14 +45,6 @@ interface Session {
   processingError?: string;
 }
 
-interface PracticeItem {
-  id: string;
-  goalId: string;
-  subject?: string;
-  scheduledFor: Timestamp;
-  status: string;
-  questions: any[];
-}
 
 interface PracticeStats {
   totalAnswered: number;
@@ -76,6 +75,7 @@ interface Gamification {
 
 function Progress() {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const userId = currentUser?.uid || '';
   const [goals, setGoals] = useState<Goal[]>([]);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
@@ -88,8 +88,9 @@ function Progress() {
   const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [crossSellSuggestions, setCrossSellSuggestions] = useState<CrossSellSuggestion[]>([]);
 
-  // Load student goals and gamification
+  // Load student goals, gamification, and cross-sell suggestions
   useEffect(() => {
     if (!userId) return;
 
@@ -100,11 +101,11 @@ function Progress() {
           const data = docSnapshot.data();
           setGoals(data.goals || []);
           setGamification(data.gamification || null);
+          setCrossSellSuggestions(data.crossSellSuggestions || []);
         }
         setLoading(false);
       },
       (error) => {
-        console.error('Error loading student:', error);
         setLoading(false);
       }
     );
@@ -136,10 +137,8 @@ function Progress() {
         setRecentSessions(sessions);
       },
       (error) => {
-        console.error('Error loading sessions:', error);
         // If index error (failed-precondition), fallback to query without orderBy
         if (error.code === 'failed-precondition') {
-          console.warn('Firestore index not available, using fallback query');
           const fallbackQuery = query(
             collection(db, 'sessions'),
             where('studentId', '==', userId)
@@ -205,14 +204,13 @@ function Progress() {
               });
             }
           } catch (error) {
-            console.error('Error processing practice item:', error, doc.id);
+            // Error processing practice item
           }
         });
 
         setPracticeStats({ totalAnswered, correctAnswers, totalPoints });
       },
       (error) => {
-        console.error('Error loading practice items:', error);
         // Set empty stats on error instead of crashing
         setPracticeStats({ totalAnswered: 0, correctAnswers: 0, totalPoints: 0 });
       }
@@ -387,12 +385,17 @@ function Progress() {
                     ? (actualSessionsCompleted / goal.targetSessions) * 100
                     : 0;
                   
+                  // Find cross-sell suggestions for this completed goal
+                  const goalSuggestions = goal.status === 'completed' 
+                    ? crossSellSuggestions.find(cs => cs.completedSubject === goal.subject)
+                    : null;
+                  
                   return (
                     <div key={goal.goalId} className="subject-card">
                       <div className="subject-card-header">
                         <h4 className="subject-name">{goal.subject}</h4>
                         <span className={`goal-status ${goal.status}`}>
-                          {goal.status}
+                          {goal.status === 'completed' ? '✓ COMPLETE' : goal.status}
                         </span>
                       </div>
                       
@@ -419,6 +422,27 @@ function Progress() {
                           <span className="stat-text">{sessionsCount} session{sessionsCount !== 1 ? 's' : ''} completed</span>
                         </div>
                       </div>
+
+                      {/* Cross-Sell Suggestions for Completed Goals */}
+                      {goal.status === 'completed' && goalSuggestions && goalSuggestions.suggestions.length > 0 && (
+                        <div className="cross-sell-section">
+                          <p className="cross-sell-label">💡 Suggested Next Steps:</p>
+                          <div className="cross-sell-suggestions">
+                            {goalSuggestions.suggestions.map((subject, idx) => (
+                              <button
+                                key={idx}
+                                className="cross-sell-button"
+                                onClick={() => {
+                                  // Navigate to dashboard to book meeting with this subject
+                                  navigate('/dashboard');
+                                }}
+                              >
+                                {subject} →
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
