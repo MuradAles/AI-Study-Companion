@@ -167,11 +167,15 @@
 
 ## 🔄 Recent Changes
 
-### Latest Updates (January 2025 - Subject Suggestions & Answer Evaluation)
+### Latest Updates (January 2025 - Navigation & Login Styling)
+- ✅ **Navigation Consistency & Logout** - Added three-dot menu button (⋯) to Navigation component with logout option, consistent across all pages (Dashboard, Practice, Chat, Tree, Tutor Dashboard), menu closes on outside click
+- ✅ **Learning Tree Header** - Changed title from "AI Study Companion" to "Tree", removed custom menu implementation, now uses shared Navigation component
+- ✅ **Login Page Styling** - Updated to match dark theme (dark background #0F172A, blue accent borders, dark input fields, consistent with main application)
+
+### Previous Updates (January 2025 - Subject Suggestions & Answer Evaluation)
 - ✅ **Progress-Based AI Subject Suggestions** - Bulb icon button appears on subjects ≥50% complete, generates 3-4 related subject suggestions via AI, allows booking tutor appointments for new subjects
 - ✅ **Answer Evaluation Improvements** - More lenient evaluation (0.2 tolerance), never reveals correct answer when wrong, accepts multiple formats (decimals, fractions, expressions), provides encouraging feedback
 - ✅ **Practice Page Enhancements** - Input area stays visible after feedback, students can see their answer alongside feedback, "Try Again" button for incorrect answers, fixed flashing issue
-- ✅ **Navigation Consistency** - All pages (Dashboard, Practice, Chat, Learning Tree) now have consistent navigation with "AI Study Companion" title
 
 ### Previous Updates (January 2025 - Learning Tree Feature)
 - ✅ **Learning Tree Visualization** - Radial tree layout with D3.js showing Student → Subject → Tutor → Difficulty hierarchy

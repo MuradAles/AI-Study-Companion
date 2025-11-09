@@ -68,7 +68,8 @@
 - ✅ **Progress-Based AI Subject Suggestions** - Bulb icon button (💡) appears on subjects ≥50% complete, generates 3-4 related subject suggestions via AI, allows booking tutor appointments for new subjects
 - ✅ **Answer Evaluation Improvements** - More lenient evaluation (0.2 tolerance), never reveals correct answer when wrong, accepts multiple formats (decimals, fractions, expressions), provides encouraging feedback
 - ✅ **Practice Page Enhancements** - Input area stays visible after feedback, students can see their answer alongside feedback, "Try Again" button for incorrect answers, fixed flashing issue
-- ✅ **Navigation Consistency** - All pages (Dashboard, Practice, Chat, Learning Tree) now have consistent navigation with "AI Study Companion" title
+- ✅ **Navigation Consistency & Logout** - All pages now have consistent navigation with logout button (three-dot menu) in Navigation component, Learning Tree title changed to "Tree", Navigation link updated to "Tree"
+- ✅ **Login Page Styling** - Updated login page to match dark theme of main application (dark background, blue accent borders, consistent styling)
 - ✅ **Chat System Refinements** - Removed practice questions from chat (chat is for help/clarification only)
 - ✅ **Math Rendering** - KaTeX/LaTeX support for math equations in chat and practice
 - ✅ **Step-by-Step Renderer** - Structured display of explanations with numbered steps

@@ -1,10 +1,39 @@
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUserRole } from '../../hooks/useUserRole';
+import { useAuth } from '../../contexts/AuthContext';
 import './Navigation.css';
 
 function Navigation() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { role, loading } = useUserRole();
+  const { logout } = useAuth();
+  const [showMenu, setShowMenu] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showMenu && !target.closest('.navigation-menu-container')) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMenu]);
 
   if (loading) {
     return <nav className="navigation"></nav>;
@@ -20,6 +49,22 @@ function Navigation() {
         >
           Tutor Dashboard
         </Link>
+        <div className="navigation-menu-container">
+          <button 
+            className="navigation-menu-button"
+            onClick={() => setShowMenu(!showMenu)}
+            aria-label="Menu"
+          >
+            ⋯
+          </button>
+          {showMenu && (
+            <div className="navigation-menu-dropdown">
+              <button className="navigation-menu-item" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
     );
   }
@@ -49,8 +94,24 @@ function Navigation() {
         to="/tree" 
         className={location.pathname === '/tree' ? 'active' : ''}
       >
-        🌳 Learning Tree
+        Tree
       </Link>
+      <div className="navigation-menu-container">
+        <button 
+          className="navigation-menu-button"
+          onClick={() => setShowMenu(!showMenu)}
+          aria-label="Menu"
+        >
+          ⋯
+        </button>
+        {showMenu && (
+          <div className="navigation-menu-dropdown">
+            <button className="navigation-menu-item" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
     </nav>
   );
 }

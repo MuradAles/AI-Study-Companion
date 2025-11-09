@@ -744,7 +744,7 @@ function LearningTree() {
     return (
       <div className="learning-tree">
         <header className="tree-header">
-          <h1>AI Study Companion</h1>
+          <h1>Tree</h1>
           <Navigation />
         </header>
         <main className="tree-main">
@@ -760,7 +760,7 @@ function LearningTree() {
   return (
     <div className="learning-tree">
       <header className="tree-header">
-        <h1>AI Study Companion</h1>
+        <h1>Tree</h1>
         <Navigation />
       </header>
       <main className="tree-main">

@@ -5,6 +5,7 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import Navigation from '../Shared/Navigation';
+import MathRenderer from '../Shared/MathRenderer';
 import './Practice.css';
 
 interface PracticeQuestion {

@@ -17,11 +17,12 @@ interface BookMeetingModalProps {
   isOpen?: boolean;
   onClose: () => void;
   tutorName?: string;
+  subject?: string;
   existingBooking?: Booking;
   prefilledSubject?: string;
 }
 
-function BookMeetingModal({ isOpen = true, onClose, tutorName, existingBooking, prefilledSubject }: BookMeetingModalProps) {
+function BookMeetingModal({ isOpen = true, onClose, tutorName, subject: initialSubject, existingBooking, prefilledSubject }: BookMeetingModalProps) {
   const { currentUser } = useAuth();
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
@@ -52,10 +53,10 @@ function BookMeetingModal({ isOpen = true, onClose, tutorName, existingBooking, 
       // Reset form when opening without existing booking
       setSelectedDate('');
       setSelectedTime('');
-      setSubject(prefilledSubject || '');
+      setSubject(initialSubject || prefilledSubject || '');
       setTopic('');
     }
-  }, [existingBooking, isOpen, prefilledSubject]);
+  }, [existingBooking, isOpen, initialSubject, prefilledSubject]);
 
   // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0];
