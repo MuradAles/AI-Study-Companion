@@ -69,7 +69,52 @@ useEffect(() => {
 - Evaluation happens on-demand via callable function
 - Shared question pool allows all students to benefit
 
-### 4. Chat System Architecture
+### 4. Booking & Tutor System Architecture
+
+**Booking Flow:**
+
+1. **Student Books Meeting:**
+   - Student selects date, time, subject (required), and topic (optional) via `BookMeetingModal`
+   - Creates document in `booking_requests` collection with status 'pending'
+   - Real-time listener updates student dashboard immediately
+
+2. **Tutor Views Pending Bookings:**
+   - `TutorDashboard` queries all pending bookings using Firestore `onSnapshot`
+   - Displays student name, subject, topic, date & time
+   - Shows "Accept & Create Appointment" button
+
+3. **Tutor Accepts Booking:**
+   - Updates booking status to 'accepted'
+   - Sets `tutorId` and `tutorName` on booking document
+   - Real-time listeners update both student and tutor dashboards instantly
+
+4. **Tutor Generates Fake Session:**
+   - Calls `generateTutoringTranscript` Firebase Cloud Function
+   - OpenAI generates realistic, subject-specific conversation transcript
+   - Creates session document with both `conversation` (array) and `transcript` (string)
+   - Firebase Cloud Functions automatically analyze transcript and generate practice questions
+
+**Role-Based Access Control:**
+- Login flow includes role selection (Student or Tutor)
+- `AuthContext` creates either `students` or `tutors` document based on role
+- `useUserRole` hook checks both collections to determine user role
+- `App.tsx` routes students to `/dashboard` and tutors to `/tutor`
+- Navigation component shows different links based on role
+- Session detail page allows tutors to view any session
+
+**Real-Time Updates:**
+- Both dashboards use `onSnapshot` listeners for instant updates
+- No page reload required when bookings are accepted or created
+- Student sees booking status change immediately
+- Tutor sees new pending bookings appear instantly
+
+**Data Collections:**
+- `booking_requests` - All booking requests (pending/accepted)
+- `students` - Student profiles with gamification data
+- `tutors` - Simple tutor profiles (name, uid)
+- `sessions` - Tutoring sessions with transcripts and AI analysis
+
+### 5. Chat System Architecture
 
 **Conversation Flow:**
 
@@ -104,7 +149,7 @@ useEffect(() => {
 - Real-time updates via Firestore listener
 - Pattern similar to chat.dpg (Athena-Math repo)
 
-### 5. Gamification State Management
+### 6. Gamification State Management
 
 **Centralized in Student Document**
 
@@ -122,7 +167,7 @@ All gamification data stored in `students/{studentId}/gamification`:
 
 **Important:** Chat questions do NOT update gamification - only practice page questions do.
 
-### 6. Dual Practice Question Systems
+### 7. Dual Practice Question Systems
 
 **System 1: Shared Questions Pool (`questions` collection)**
 - Questions generated from sessions → Added to `questions` collection
@@ -152,7 +197,7 @@ All gamification data stored in `students/{studentId}/gamification`:
 - Per-student items: Personalized scheduling, checkpoint progression
 - Chat questions: Always fresh, context-aware, no gamification conflicts
 
-### 7. Notification System
+### 8. Notification System
 
 **Scheduled Function → Notification Document → FCM → Client**
 
@@ -170,7 +215,7 @@ All gamification data stored in `students/{studentId}/gamification`:
 - `practice_reminder`: Daily practice goals
 - `achievement`: Badge/level up notifications
 
-### 8. Cross-Sell Intelligence
+### 9. Cross-Sell Intelligence
 
 **Two Implementation Approaches:**
 
@@ -206,7 +251,7 @@ const subjectRelations: Record<string, string[]> = {
 
 **Note:** Goal completion uses hardcoded mapping, chat uses session-based analysis. Both filter out existing goals.
 
-### 9. Session Context Integration
+### 10. Session Context Integration
 
 **Chat Responses Reference Actual Sessions**
 
@@ -223,7 +268,7 @@ AI chat companion loads:
 - Tracks conversation history in Firestore
 - Clarification-focused (not general tutoring)
 
-### 10. Practice Scheduling Logic
+### 11. Practice Scheduling Logic
 
 **Session → Next Day → Scheduled Time**
 
@@ -239,11 +284,21 @@ AI chat companion loads:
 
 ```
 App
-├── Dashboard
+├── Dashboard (Student)
 │   ├── GamificationHeader (level, points, streak)
 │   ├── DailyGoals (progress indicator)
 │   ├── PracticeAlert (new questions available)
-│   └── ProgressTracker (multi-subject view)
+│   ├── ProgressTracker (multi-subject view)
+│   ├── SessionsTable (recent sessions)
+│   └── TutoringRequests (pending/accepted bookings)
+├── TutorDashboard (Tutor)
+│   ├── PendingBookings (with Accept button)
+│   └── AcceptedBookings (with Generate Fake Session button)
+├── BookMeetingModal
+│   ├── DatePicker
+│   ├── TimePicker
+│   ├── SubjectInput (required)
+│   └── TopicInput (optional)
 ├── PracticeInterface (PracticeShared)
 │   ├── QuestionCard (question display from shared pool)
 │   ├── AnswerInput (text input)

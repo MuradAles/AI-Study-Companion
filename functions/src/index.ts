@@ -546,3 +546,98 @@ export const validateChatAnswer = functions.https.onCall(async (data, context) =
   }
 });
 
+/**
+ * Generate realistic tutoring conversation transcript using OpenAI
+ * Works for ANY subject: Math, English, Science, History, etc.
+ * Callable function from client
+ */
+export const generateTutoringTranscript = functions.https.onCall(async (data, context) => {
+  // Check authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { studentName, tutorName, subject, topic } = data;
+
+  if (!studentName || !tutorName || !subject) {
+    throw new functions.https.HttpsError('invalid-argument', 'studentName, tutorName, and subject are required');
+  }
+
+  try {
+    console.log(`🎨 Generating realistic conversation for ${subject}${topic ? ` - ${topic}` : ''}`);
+    
+    const { callOpenAI } = await import('./openai');
+    
+    // Create a detailed system prompt for realistic tutoring conversations
+    const systemPrompt = `You are an expert at creating realistic tutoring conversation transcripts. 
+Generate an authentic, natural-sounding conversation between a tutor and student about ${subject}${topic ? ` focusing on ${topic}` : ''}.
+
+CRITICAL REQUIREMENTS:
+- Include ACTUAL CONTENT: real equations, problems, examples, passages, etc. 
+- For Math: Include real equations like "2x + 5 = 13" or "x² - 5x + 6 = 0" and work through solutions
+- For English/Reading: Include actual passages, literary analysis, grammar examples
+- For Science: Include real concepts, formulas, experiments
+- For History: Include dates, events, cause-and-effect relationships
+- The conversation should show the student struggling initially, then understanding with tutor's help
+- Make it feel like a REAL tutoring session with specific content, not vague discussion
+- Include 10-12 message exchanges total (alternating tutor/student)
+
+Return your response in JSON format with an array of conversation messages:
+{
+  "conversation": [
+    {"speaker": "tutor", "message": "...", "timestamp": "ISO string"},
+    {"speaker": "student", "message": "...", "timestamp": "ISO string"}
+  ]
+}`;
+
+    const userPrompt = `Generate a realistic tutoring conversation transcript:
+- Student: ${studentName}
+- Tutor: ${tutorName}  
+- Subject: ${subject}
+- Topic: ${topic || 'General concepts'}
+
+Make it authentic with actual problems, examples, or content from this subject!`;
+
+    const response = await callOpenAI(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      {
+        model: 'gpt-4o',
+        temperature: 0.8, // Higher temperature for more creative, varied responses
+        maxTokens: 2000,
+        responseFormat: { type: 'json_object' },
+      }
+    );
+
+    // Parse JSON response
+    let conversation;
+    try {
+      const parsed = JSON.parse(response);
+      conversation = parsed.conversation || [];
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response as JSON:', parseError);
+      throw new functions.https.HttpsError('internal', 'Failed to parse conversation data');
+    }
+
+    if (!conversation || conversation.length === 0) {
+      throw new functions.https.HttpsError('internal', 'Generated conversation is empty');
+    }
+
+    console.log(`✅ Generated ${conversation.length} conversation exchanges`);
+
+    return {
+      conversation,
+      subject,
+      topic: topic || 'General',
+    };
+  } catch (error) {
+    console.error('Error generating tutoring transcript:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', `Failed to generate transcript: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+});
+

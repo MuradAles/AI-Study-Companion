@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUserRole } from '../../hooks/useUserRole';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navigation from '../Shared/Navigation';
 import './SessionDetail.css';
@@ -31,6 +32,7 @@ interface SessionData {
 function SessionDetail() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const { currentUser } = useAuth();
+  const { role } = useUserRole();
   const navigate = useNavigate();
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,9 @@ function SessionDetail() {
 
         const sessionData = sessionDoc.data() as SessionData;
         
-        if (sessionData.studentId !== currentUser.uid) {
+        // Allow access if user is the student OR a tutor
+        // Tutors can view sessions of students they're helping
+        if (role !== 'tutor' && sessionData.studentId !== currentUser.uid) {
           setError('You do not have permission to view this session');
           setLoading(false);
           return;
@@ -68,7 +72,7 @@ function SessionDetail() {
     };
 
     loadSession();
-  }, [sessionId, currentUser]);
+  }, [sessionId, currentUser, role]);
 
   if (loading) {
     return (
@@ -94,8 +98,8 @@ function SessionDetail() {
         <main className="session-detail-main">
           <div className="error-card">
             <p>{error || 'Session not found'}</p>
-            <button onClick={() => navigate('/dashboard')}>
-              Back to Dashboard
+            <button onClick={() => navigate(role === 'tutor' ? '/tutor' : '/dashboard')}>
+              Back to {role === 'tutor' ? 'Tutor Dashboard' : 'Dashboard'}
             </button>
           </div>
         </main>
@@ -113,9 +117,21 @@ function SessionDetail() {
   const analysis = session.aiAnalysis;
 
   // Parse transcript into messages
-  const parseTranscript = (transcript: string, tutorName: string) => {
-    const lines = transcript.split('\n').filter(line => line.trim());
+  const parseTranscript = (transcript: string | any[], tutorName: string) => {
     const messages: Array<{ speaker: 'tutor' | 'student'; text: string }> = [];
+    
+    // If transcript is already an array (new format from fake sessions)
+    if (Array.isArray(transcript)) {
+      return transcript.map(item => ({
+        speaker: item.speaker === 'tutor' ? 'tutor' : 'student',
+        text: item.message,
+      }));
+    }
+    
+    // If transcript is a string (old format)
+    if (typeof transcript !== 'string') return messages;
+    
+    const lines = transcript.split('\n').filter(line => line.trim());
     
     for (const line of lines) {
       const trimmedLine = line.trim();

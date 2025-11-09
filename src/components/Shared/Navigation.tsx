@@ -1,9 +1,30 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useUserRole } from '../../hooks/useUserRole';
 import './Navigation.css';
 
 function Navigation() {
   const location = useLocation();
+  const { role, loading } = useUserRole();
 
+  if (loading) {
+    return <nav className="navigation"></nav>;
+  }
+
+  // Show different navigation based on role
+  if (role === 'tutor') {
+    return (
+      <nav className="navigation">
+        <Link 
+          to="/tutor" 
+          className={location.pathname === '/tutor' ? 'active' : ''}
+        >
+          Tutor Dashboard
+        </Link>
+      </nav>
+    );
+  }
+
+  // Default: student navigation
   return (
     <nav className="navigation">
       <Link 

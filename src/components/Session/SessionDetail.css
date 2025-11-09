@@ -187,14 +187,17 @@
   border-left-color: #FBBF24;
 }
 
-/* Key Moments */
+/* Key Moments - Simple 2-Column Grid */
 .moments-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr; /* Simple 2 equal columns */
+  grid-auto-rows: minmax(130px, auto); /* All rows same minimum height */
   gap: 1rem;
   max-height: 400px;
   overflow: hidden;
   transition: max-height 0.5s ease-in-out;
+  width: 100%;
+  align-items: stretch; /* Stretch items to fill row height */
 }
 
 .moments-grid.expanded {
@@ -206,14 +209,17 @@
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.25rem;
   display: flex;
+  flex-direction: row;
   gap: 1rem;
   align-items: flex-start;
   transition: all 0.3s ease;
   opacity: 0;
   transform: translateY(20px);
   animation: fadeInUp 0.5s ease forwards;
+  height: 100%; /* Fill entire grid cell */
+  box-sizing: border-box;
 }
 
 @keyframes fadeInUp {
@@ -240,13 +246,31 @@
   border-left: 4px solid #FBBF24;
 }
 
+.moment-item.explanation {
+  border-left: 4px solid #FBBF24;
+}
+
+.moment-item.question {
+  border-left: 4px solid #8B5CF6;
+}
+
 .moment-icon {
   font-size: 2rem;
   flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .moment-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0; /* Allow text to shrink */
 }
 
 .moment-type {
@@ -255,13 +279,21 @@
   color: var(--primary);
   font-weight: 600;
   letter-spacing: 1px;
+  line-height: 1.2;
+  margin: 0;
 }
 
 .moment-content p {
-  margin: 0.5rem 0 0 0;
+  margin: 0;
   color: var(--text);
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Max 3 lines */
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 
 .expand-moments-btn {

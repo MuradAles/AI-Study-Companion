@@ -7,6 +7,7 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [userRole, setUserRole] = useState<'student' | 'tutor'>('student');
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,7 +19,18 @@ function Login() {
 
     try {
       if (isSignUp) {
-        await signUp(email, password, displayName || undefined);
+        if (!displayName.trim()) {
+          setError('Please enter your name');
+          setIsSubmitting(false);
+          return;
+        }
+        if (!userRole || (userRole !== 'student' && userRole !== 'tutor')) {
+          setError('Please select whether you are a student or tutor');
+          setIsSubmitting(false);
+          return;
+        }
+        console.log('Submitting signup with role:', userRole); // Debug log
+        await signUp(email, password, displayName.trim(), userRole);
       } else {
         await signIn(email, password);
       }
@@ -51,22 +63,46 @@ function Login() {
       <div className="login-card">
         <h1>AI Study Companion</h1>
         <p className="login-subtitle">
-          {isSignUp ? 'Create your account' : 'Sign in to continue'}
+          {isSignUp ? `Create your ${userRole} account` : 'Sign in to continue'}
         </p>
 
         <form onSubmit={handleSubmit} className="login-form">
           {isSignUp && (
+            <>
+              <div className="form-group">
+                <label htmlFor="userRole">I am a:</label>
+                <div className="role-selection">
+                  <button
+                    type="button"
+                    className={`role-button ${userRole === 'student' ? 'active' : ''}`}
+                    onClick={() => setUserRole('student')}
+                    disabled={isSubmitting}
+                  >
+                    🎓 Student
+                  </button>
+                  <button
+                    type="button"
+                    className={`role-button ${userRole === 'tutor' ? 'active' : ''}`}
+                    onClick={() => setUserRole('tutor')}
+                    disabled={isSubmitting}
+                  >
+                    👨‍🏫 Tutor
+                  </button>
+                </div>
+              </div>
             <div className="form-group">
-              <label htmlFor="displayName">Name (Optional)</label>
+                <label htmlFor="displayName">Name *</label>
               <input
                 id="displayName"
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Enter your name"
+                  placeholder="Enter your full name"
+                  required
                 disabled={isSubmitting}
               />
             </div>
+            </>
           )}
 
           <div className="form-group">
@@ -106,7 +142,7 @@ function Login() {
           <button
             type="submit"
             className="submit-button"
-            disabled={isSubmitting || !email || !password}
+            disabled={isSubmitting || !email || !password || (isSignUp && !displayName.trim())}
           >
             {isSubmitting ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
           </button>
@@ -119,6 +155,8 @@ function Login() {
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError(null);
+                  setDisplayName(''); // Reset name when toggling
+                  // Don't reset role - keep user's selection
                 }}
                 className="toggle-link"
                 disabled={isSubmitting}

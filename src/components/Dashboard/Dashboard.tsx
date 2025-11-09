@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { doc, onSnapshot, collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { useInitializeStudent } from '../../hooks/useInitializeStudent';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '../Shared/Navigation';
+import BookMeetingModal from './BookMeetingModal';
 import './Dashboard.css';
 
 interface Student {
@@ -32,6 +32,16 @@ interface Session {
   date: any;
 }
 
+interface Booking {
+  id: string;
+  tutorName: string;
+  subject: string;
+  topic: string;
+  date: any;
+  status: string;
+  createdAt: any;
+}
+
 interface Achievement {
   id: string;
   emoji: string;
@@ -52,8 +62,9 @@ function Dashboard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [topicsExplored, setTopicsExplored] = useState(0);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-
-  useInitializeStudent();
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   const userId = currentUser?.uid || '';
 
@@ -191,14 +202,15 @@ function Dashboard() {
       setQuestionsAnswered(totalCorrect); // Show only correctly solved questions
       setCorrectAnswers(totalCorrect);
 
-      // Sessions - simplified query without orderBy
+      // Real-time listener for sessions
       const sessionsQuery = query(
         collection(db, 'sessions'),
         where('studentId', '==', userId),
         limit(5)
       );
-      const sessionsSnapshot = await getDocs(sessionsQuery);
-      const sessionsData = sessionsSnapshot.docs
+      
+      const unsubscribeSessions = onSnapshot(sessionsQuery, (snapshot) => {
+        const sessionsData = snapshot.docs
         .map(doc => ({
           id: doc.id,
           ...doc.data()
@@ -210,6 +222,35 @@ function Dashboard() {
           return bTime - aTime;
         });
       setSessions(sessionsData);
+      });
+
+      // Real-time listener for bookings
+      const bookingsQuery = query(
+        collection(db, 'booking_requests'),
+        where('studentId', '==', userId)
+      );
+      
+      const unsubscribeBookings = onSnapshot(bookingsQuery, (snapshot) => {
+        const bookingsData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Booking));
+        
+        // Sort by date (upcoming first)
+        bookingsData.sort((a, b) => {
+          const aDate = a.date?.toMillis?.() || 0;
+          const bDate = b.date?.toMillis?.() || 0;
+          return aDate - bDate;
+        });
+        
+        setBookings(bookingsData);
+      });
+
+      // Cleanup listeners on unmount
+      return () => {
+        unsubscribeSessions();
+        unsubscribeBookings();
+      };
     };
 
     loadData();
@@ -320,6 +361,30 @@ function Dashboard() {
     navigate(`/session/${sessionId}`);
   };
 
+  const handleBookMeeting = (session?: Session) => {
+    if (session) {
+      setSelectedSession(session);
+    } else {
+      setSelectedSession(null);
+    }
+    setIsBookingModalOpen(true);
+  };
+
+  // Find booking for a specific session (by tutor name)
+  const getBookingForSession = (session: Session): Booking | undefined => {
+    return bookings.find(
+      booking => 
+        booking.tutorName === session.tutorName && 
+        booking.status === 'pending' &&
+        booking.date?.toMillis?.() >= Date.now() // Only future bookings
+    );
+  };
+
+  const handleCloseBookingModal = () => {
+    setIsBookingModalOpen(false);
+    setSelectedSession(null);
+  };
+
   return (
     <div className="dashboard">
       <header className="dashboard-header">
@@ -374,7 +439,7 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Today's Goal */}
+          {/* Today's Goal and Book Meeting */}
           <div className="top-row">
             <div className="daily-goal-compact">
               <span className="goal-label">Today's Goal</span>
@@ -386,6 +451,21 @@ function Dashboard() {
                     style={{ width: `${(completed / target) * 100}%` }}
                   />
                 </div>
+              </div>
+            </div>
+            <div className="book-meeting-card">
+              <div className="book-meeting-content">
+                <div className="book-meeting-icon">📅</div>
+                <div className="book-meeting-text">
+                  <h3>Book a Meeting</h3>
+                  <p>Schedule your next tutoring session</p>
+                </div>
+                <button 
+                  className="book-meeting-button"
+                  onClick={() => handleBookMeeting()}
+                >
+                  Book Now
+                </button>
               </div>
             </div>
           </div>
@@ -462,6 +542,9 @@ function Dashboard() {
                   <tbody>
                     {sessions.map(session => {
                       const sessionDate = session.date?.toDate?.() || session.createdAt?.toDate?.() || new Date();
+                      const existingBooking = getBookingForSession(session);
+                      const bookingDate = existingBooking?.date?.toDate?.();
+                      
                       return (
                         <tr key={session.id}>
                           <td className="session-subject-cell">{session.subject}</td>
@@ -474,15 +557,44 @@ function Dashboard() {
                             })}
                           </td>
                           <td className="session-action-cell">
+                            {existingBooking && bookingDate ? (
+                              <div className="booking-info">
+                                <div className="booking-date-display">
+                                  <span className="booking-icon">📅</span>
+                                  <span className="booking-text">
+                                    {bookingDate.toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric'
+                                    })}
+                                    {' at '}
+                                    {bookingDate.toLocaleTimeString('en-US', {
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+                                <button 
+                                  className="schedule-meeting-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleBookMeeting(session);
+                                  }}
+                                >
+                                  View/Edit
+                                </button>
+                              </div>
+                            ) : (
                             <button 
                               className="schedule-meeting-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                alert(`Schedule meeting with ${session.tutorName} for ${session.subject} - Coming soon!`);
+                                  handleBookMeeting(session);
                               }}
                             >
                               📅 Book Meeting
                             </button>
+                            )}
                           </td>
                           <td className="session-action-cell">
                             <button 
@@ -500,8 +612,105 @@ function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* All Booking Requests - Moved to bottom */}
+          {bookings.length > 0 && (() => {
+            const pendingBookings = bookings.filter(b => b.status === 'pending');
+            const acceptedBookings = bookings.filter(b => b.status === 'accepted');
+            
+            return (
+              <div className="card bookings-status-section">
+                <h3>📅 Your Tutoring Requests</h3>
+                
+                {/* Pending Requests First */}
+                {pendingBookings.length > 0 && (
+                  <div className="bookings-group">
+                    <h4 className="bookings-group-title">⏳ Pending Requests</h4>
+                    <div className="bookings-status-list">
+                      {pendingBookings.map(booking => {
+                        const bookingDate = booking.date?.toDate?.();
+                        
+                        return (
+                          <div key={booking.id} className={`booking-status-item ${booking.status}`}>
+                            <div className="booking-status-icon">⏳</div>
+                            <div className="booking-status-details">
+                              <div className="booking-status-header">
+                                <p className="booking-status-topic"><strong>{booking.subject}</strong></p>
+                                <span className={`status-badge ${booking.status}`}>⏳ Pending</span>
+                              </div>
+                              <p className="booking-status-tutor">Waiting for tutor to accept...</p>
+                              <p className="booking-status-date">
+                                {bookingDate?.toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                                {' at '}
+                                {bookingDate?.toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Accepted Requests Second */}
+                {acceptedBookings.length > 0 && (
+                  <div className="bookings-group">
+                    <h4 className="bookings-group-title">✅ Accepted Requests</h4>
+                    <div className="bookings-status-list">
+                      {acceptedBookings.map(booking => {
+                        const bookingDate = booking.date?.toDate?.();
+                        
+                        return (
+                          <div key={booking.id} className={`booking-status-item ${booking.status}`}>
+                            <div className="booking-status-icon">✅</div>
+                            <div className="booking-status-details">
+                              <div className="booking-status-header">
+                                <p className="booking-status-topic"><strong>{booking.subject}</strong></p>
+                                <span className={`status-badge ${booking.status}`}>✅ Accepted</span>
+                              </div>
+                              {booking.tutorName && (
+                                <p className="booking-status-tutor">with {booking.tutorName}</p>
+                              )}
+                              <p className="booking-status-date">
+                                {bookingDate?.toLocaleDateString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                                {' at '}
+                                {bookingDate?.toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </main>
+
+      {/* Book Meeting Modal */}
+      <BookMeetingModal
+        isOpen={isBookingModalOpen}
+        onClose={handleCloseBookingModal}
+        tutorName={selectedSession?.tutorName}
+        subject={selectedSession?.subject}
+        existingBooking={selectedSession ? getBookingForSession(selectedSession) : undefined}
+      />
     </div>
   );
 }

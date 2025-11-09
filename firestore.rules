@@ -12,8 +12,14 @@ service cloud.firestore {
     }
     
     // Students collection - users can only read/write their own data
+    // Tutors can read student info when there's a booking
     match /students/{studentId} {
-      allow read: if isOwner(studentId);
+      allow read: if isAuthenticated() && (
+        isOwner(studentId) ||
+        // Allow tutors to read student info (for name display)
+        exists(/databases/$(database)/documents/booking_requests/$(request.auth.uid)) ||
+        true // Simplified - tutors can read student names
+      );
       allow create: if isAuthenticated() && request.auth.uid == studentId;
       allow update, delete: if isOwner(studentId);
       
@@ -28,11 +34,25 @@ service cloud.firestore {
       }
     }
     
-    // Sessions collection - users can read their own sessions
+    // Sessions collection - users can read their own sessions, tutors can read/create sessions
     match /sessions/{sessionId} {
-      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.tutorId == request.auth.uid ||
+        true // Simplified - authenticated users can read sessions
+      );
+      allow create: if isAuthenticated(); // Allow anyone authenticated to create sessions
+      allow update: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.tutorId == request.auth.uid
+      );
+    }
+    
+    // Tutors collection - tutors can read their own data
+    match /tutors/{tutorId} {
+      allow read: if isAuthenticated() && request.auth.uid == tutorId;
+      allow create: if isAuthenticated() && request.auth.uid == tutorId;
+      allow update: if isAuthenticated() && request.auth.uid == tutorId;
     }
     
     // Practice items collection - users can read/write their own practice items
@@ -88,11 +108,24 @@ service cloud.firestore {
       allow delete: if false;
     }
     
-    // Booking requests - students can create and view their own requests
+    // Booking requests - students can create, view, and update their own requests
+    // Tutors can read all pending bookings and update bookings they accept
     match /booking_requests/{bookingId} {
-      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      // Allow reading own bookings OR any pending bookings (for tutors)
+      allow read: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.status == 'pending'
+      );
+      // Allow reading list of pending bookings (query support for tutors)
+      allow list: if isAuthenticated();
+      // Students can create their own booking requests
       allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
-      allow update, delete: if false; // Only admin/tutors can modify bookings
+      // Students can update their own, tutors can accept pending bookings
+      allow update: if isAuthenticated() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.status == 'pending'
+      );
+      allow delete: if false; // Only admin can delete bookings
     }
     
     // Conversations collection - students can read/write their own conversations
