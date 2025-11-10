@@ -3,7 +3,6 @@ import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'fireba
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import Navigation from '../Shared/Navigation';
 import './Practice.css';
 
 interface SharedQuestion {
@@ -323,10 +322,6 @@ function PracticeShared() {
   if (loading) {
     return (
       <div className="practice">
-        <header className="practice-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="practice-main">
           <p>Loading questions...</p>
         </main>
@@ -341,10 +336,6 @@ function PracticeShared() {
 
     return (
       <div className="practice">
-        <header className="practice-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="practice-main">
           <div className="practice-container question-detail-view">
             <button onClick={handleBackToList} className="back-button">
@@ -542,10 +533,6 @@ function PracticeShared() {
 
   return (
     <div className="practice">
-      <header className="practice-header">
-        <h1>AI Study Companion</h1>
-        <Navigation />
-      </header>
       <main className="practice-main">
         <div className="practice-container">
           <h2>Practice Questions</h2>

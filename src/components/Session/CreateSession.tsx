@@ -3,7 +3,6 @@ import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '../Shared/Navigation';
 import './CreateSession.css';
 
 interface CreateSessionProps {
@@ -70,10 +69,6 @@ function CreateSession({ onSuccess }: CreateSessionProps) {
 
   return (
     <div className="create-session">
-      <header className="create-session-header">
-        <h1>AI Study Companion</h1>
-        <Navigation />
-      </header>
       <main className="create-session-main">
         <div className="create-session-card">
           <h2>Create a Tutoring Session</h2>

@@ -4,7 +4,6 @@ import { collection, query, where, onSnapshot, orderBy, Timestamp, doc, updateDo
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import Navigation from '../Shared/Navigation';
 import MathRenderer from '../Shared/MathRenderer';
 import './Practice.css';
 
@@ -399,10 +398,6 @@ function Practice() {
   if (loading) {
     return (
       <div className="practice">
-        <header className="practice-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="practice-main">
           <p>Loading practice questions...</p>
         </main>
@@ -413,10 +408,6 @@ function Practice() {
   if (!currentItem || currentItem.questions.length === 0) {
     return (
       <div className="practice">
-        <header className="practice-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="practice-main">
           <h2>No Practice Questions Available</h2>
           <p>Complete more tutoring sessions to unlock practice questions!</p>
@@ -454,10 +445,6 @@ function Practice() {
   if (viewMode === 'list' && !checkpointId) {
     return (
       <div className="practice">
-        <header className="practice-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="practice-main">
           <div className="practice-container">
             <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -672,10 +659,6 @@ function Practice() {
 
   return (
     <div className="practice">
-      <header className="practice-header">
-        <h1>AI Study Companion</h1>
-        <Navigation />
-      </header>
       <main className="practice-main">
         <div className="practice-container">
           {/* Back to List button (only show if not from checkpoint) */}

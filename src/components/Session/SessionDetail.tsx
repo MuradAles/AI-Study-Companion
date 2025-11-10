@@ -4,7 +4,6 @@ import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserRole } from '../../hooks/useUserRole';
 import { useNavigate, useParams } from 'react-router-dom';
-import Navigation from '../Shared/Navigation';
 import './SessionDetail.css';
 
 interface AIAnalysis {
@@ -76,10 +75,6 @@ function SessionDetail() {
   if (loading) {
     return (
       <div className="session-detail">
-        <header className="session-detail-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="session-detail-main">
           <p>Loading session...</p>
         </main>
@@ -90,10 +85,6 @@ function SessionDetail() {
   if (error || !session) {
     return (
       <div className="session-detail">
-        <header className="session-detail-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="session-detail-main">
           <div className="error-card">
             <p>{error || 'Session not found'}</p>
@@ -181,7 +172,6 @@ function SessionDetail() {
             <p>with {session.tutorName} • {formattedDate}</p>
           </div>
         </div>
-        <Navigation />
       </header>
       <main className="session-detail-main">
         <div className="session-detail-content">

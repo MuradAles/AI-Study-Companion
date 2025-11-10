@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useUserRole } from './hooks/useUserRole';
+import Navigation from './components/Shared/Navigation';
 import Dashboard from './components/Dashboard/Dashboard';
 import Practice from './components/Practice/Practice';
 import PracticeShared from './components/Practice/PracticeShared';
@@ -29,6 +30,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Navigation />
       <Routes>
         <Route path="/" element={<Navigate to={defaultRoute} replace />} />
         {role === 'tutor' ? (

@@ -636,7 +636,6 @@
 
 .question-title {
   color: var(--text);
-  margin-bottom: 0.25rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

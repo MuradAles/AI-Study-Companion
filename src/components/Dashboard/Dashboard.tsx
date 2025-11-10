@@ -3,7 +3,6 @@ import { doc, onSnapshot, collection, query, where, getDocs, limit, updateDoc, o
 import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '../Shared/Navigation';
 import BookMeetingModal from './BookMeetingModal';
 import './Dashboard.css';
 
@@ -370,10 +369,6 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="dashboard">
-        <header className="dashboard-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="dashboard-main">
           <p>Loading...</p>
         </main>
@@ -462,10 +457,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      <header className="dashboard-header">
-        <h1>AI Study Companion</h1>
-        <Navigation />
-      </header>
       <main className="dashboard-main">
         <div className="dashboard-content">
           

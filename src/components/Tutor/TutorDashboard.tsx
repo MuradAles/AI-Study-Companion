@@ -3,7 +3,6 @@ import { collection, query, updateDoc, doc, Timestamp, getDoc, onSnapshot, addDo
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import Navigation from '../Shared/Navigation';
 import './TutorDashboard.css';
 
 interface BookingRequest {
@@ -215,10 +214,6 @@ function TutorDashboard() {
   if (loading) {
     return (
       <div className="tutor-dashboard">
-        <header className="tutor-header">
-          <h1>📚 Tutor Dashboard</h1>
-          <Navigation />
-        </header>
         <main className="tutor-main">
           <p>Loading...</p>
         </main>

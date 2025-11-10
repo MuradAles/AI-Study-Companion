@@ -3,7 +3,6 @@ import { doc, getDoc, setDoc, onSnapshot, Timestamp, serverTimestamp } from 'fir
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import Navigation from '../Shared/Navigation';
 import ChatList from './ChatList';
 import MathRenderer from '../Shared/MathRenderer';
 import StepByStepRenderer from '../Shared/StepByStepRenderer';
@@ -226,10 +225,6 @@ function Chat() {
 
   return (
     <div className="chat">
-      <header className="chat-top-header">
-        <h1>AI Study Companion</h1>
-        <Navigation />
-      </header>
       <main className="chat-main">
         <ChatList
           selectedChatId={conversationId}

@@ -3,7 +3,6 @@ import { collection, query, where, onSnapshot, Timestamp, doc, orderBy } from 'f
 import { db } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Navigation from '../Shared/Navigation';
 import './Progress.css';
 
 interface Goal {
@@ -222,10 +221,6 @@ function Progress() {
   if (loading) {
     return (
       <div className="progress">
-        <header className="progress-header">
-          <h1>AI Study Companion</h1>
-          <Navigation />
-        </header>
         <main className="progress-main">
           <p>Loading progress...</p>
         </main>

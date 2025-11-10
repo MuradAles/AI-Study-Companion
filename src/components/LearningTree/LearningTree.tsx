@@ -4,7 +4,6 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../../services/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import Navigation from '../Shared/Navigation';
 import BookMeetingModal from '../Dashboard/BookMeetingModal';
 import './LearningTree.css';
 
@@ -743,10 +742,6 @@ function LearningTree() {
   if (loading) {
     return (
       <div className="learning-tree">
-        <header className="tree-header">
-          <h1>Tree</h1>
-          <Navigation />
-        </header>
         <main className="tree-main">
           <div className="tree-loading">
             <div className="spinner"></div>
@@ -759,10 +754,6 @@ function LearningTree() {
 
   return (
     <div className="learning-tree">
-      <header className="tree-header">
-        <h1>Tree</h1>
-        <Navigation />
-      </header>
       <main className="tree-main">
         <div className="tree-container">
           <div className="tree-content">
