@@ -265,10 +265,6 @@ function Progress() {
 
   return (
     <div className="progress">
-      <header className="progress-header">
-        <h1>AI Study Companion</h1>
-        <Navigation />
-      </header>
       <main className="progress-main">
         <div className="progress-container">
           <h2>Your Progress Overview</h2>

@@ -223,10 +223,6 @@ function TutorDashboard() {
 
   return (
     <div className="tutor-dashboard">
-      <header className="tutor-header">
-        <h1>📚 Tutor Dashboard</h1>
-        <Navigation />
-      </header>
       <main className="tutor-main">
         <div className="tutor-content">
           {/* All Bookings Section (Pending + Accepted) */}
